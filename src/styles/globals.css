@@ -26,14 +26,6 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-
-  /* Rule Engine Specific */
-  --color-rule-or: hsl(var(--rule-or));
-  --color-rule-or-bg: hsl(var(--rule-or-bg));
-  --color-rule-and: hsl(var(--rule-and));
-  --color-rule-and-bg: hsl(var(--rule-and-bg));
-  --color-rule-none: hsl(var(--rule-none));
-  --color-rule-none-bg: hsl(var(--rule-none-bg));
 }
 
 :root {
@@ -58,14 +50,6 @@
   --input: 240 5.9% 90%;
   --ring: 240 5.9% 10%;
   --radius: 0.5rem;
-
-  /* Rule Engine Specific */
-  --rule-or: 217 91% 60%;
-  --rule-or-bg: 217 91% 96%;
-  --rule-and: 142 71% 45%;
-  --rule-and-bg: 142 71% 95%;
-  --rule-none: 0 84% 60%;
-  --rule-none-bg: 0 84% 95%;
 }
 
 .dark {
@@ -88,14 +72,6 @@
   --border: 0 0% 14.9%;
   --input: 0 0% 14.9%;
   --ring: 0 0% 83.9%;
-
-  /* Rule Engine Specific */
-  --rule-or: 217 91% 60%;
-  --rule-or-bg: 217 91% 15%;
-  --rule-and: 142 71% 45%;
-  --rule-and-bg: 142 71% 15%;
-  --rule-none: 0 84% 60%;
-  --rule-none-bg: 0 84% 15%;
 }
 
 @layer base {
@@ -107,8 +83,14 @@
     @apply border-border;
   }
 
+  * {
+    border-color: hsl(var(--border));
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
@@ -172,22 +154,22 @@
 }
 
 @keyframes in {
-  from { 
+  from {
     opacity: var(--tw-enter-opacity, 1);
     transform: translate3d(var(--tw-enter-translate-x, 0), var(--tw-enter-translate-y, 0), 0) scale3d(var(--tw-enter-scale, 1), var(--tw-enter-scale, 1), var(--tw-enter-scale, 1)) rotate(var(--tw-enter-rotate, 0));
   }
-  to { 
+  to {
     opacity: 1;
     transform: translate3d(0, 0, 0) scale3d(1, 1, 1) rotate(0);
   }
 }
 
 @keyframes out {
-  from { 
+  from {
     opacity: 1;
     transform: translate3d(0, 0, 0) scale3d(1, 1, 1) rotate(0);
   }
-  to { 
+  to {
     opacity: var(--tw-exit-opacity, 1);
     transform: translate3d(var(--tw-exit-translate-x, 0), var(--tw-exit-translate-y, 0), 0) scale3d(var(--tw-exit-scale, 1), var(--tw-exit-scale, 1), var(--tw-exit-scale, 1)) rotate(var(--tw-exit-rotate, 0));
   }
@@ -203,7 +185,7 @@
   .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
-  
+
   /* Hide scrollbar for IE, Edge and Firefox */
   .scrollbar-none {
     -ms-overflow-style: none;  /* IE and Edge */
@@ -357,29 +339,6 @@
 
   [cmdk-item][data-selected="true"] {
     @apply bg-accent text-accent-foreground;
-  }
-}
-
-@utility rule-builder {
-  /* Rule builder specific styles */
-  .rule-depth-indicator {
-    @apply absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-primary/80 to-primary/20;
-  }
-
-  .rule-path {
-    @apply font-mono text-xs text-muted-foreground;
-  }
-}
-
-@utility rule-indents {
-  /* Nested rule indentation */
-  .rule-indent-1 { @apply pl-4; }
-  .rule-indent-2 { @apply pl-8; }
-  .rule-indent-3 { @apply pl-12; }
-  .rule-indent-4 { @apply pl-16; }
-  .rule-indent-5 { @apply pl-20; }
-  .rule-indent-deep {
-    @apply pl-24 border-l-2 border-dashed border-border;
   }
 }
 

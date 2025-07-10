@@ -1,657 +1,62 @@
 <div align="center">
-  <img src="../../assets/builder-logo.svg" alt="Rule Engine Builder Logo" width="120" />
+  <img src="./assets/logo.svg" alt="BluChat Logo" width="120" />
 
-  <h1>@usex/rule-engine-builder</h1>
-  <p><strong>🎨 Visual Rule Constructor for React Applications</strong></p>
-
-  <p>
-    <a href="https://www.npmjs.com/package/@usex/rule-engine-builder"><img src="https://img.shields.io/npm/v/@usex/rule-engine-builder?style=flat-square" alt="npm version" /></a>
-    <a href="https://github.com/ali-master/rule-engine/blob/master/LICENSE"><img src="https://img.shields.io/npm/l/@usex/rule-engine-builder?style=flat-square" alt="license" /></a>
-    <a href="https://www.npmjs.com/package/@usex/rule-engine-builder"><img src="https://img.shields.io/npm/dm/@usex/rule-engine-builder?style=flat-square" alt="downloads" /></a>
-    <a href="https://github.com/ali-master/rule-engine"><img src="https://img.shields.io/github/stars/ali-master/rule-engine?style=flat-square" alt="stars" /></a>
-  </p>
+  <h1>BluChat</h1>
+  <p><strong>🔗 Secure Offline Bluetooth Messaging</strong></p>
 
   <p>
     <a href="#-quick-start">Quick Start</a> •
-    <a href="./docs/components.md">Components</a> •
-    <a href="./docs/examples.md">Examples</a> •
-    <a href="#-why-visual-builder">Why Visual Builder?</a>
+    <a href="#-features">Features</a> •
+    <a href="#-roadmap">Roadmap</a> •
+    <a href="#-contributing">Contributing</a>
+  </p>
+
+  <p>
+    <img src="https://img.shields.io/badge/PWA-Ready-blue?style=flat-square" alt="PWA Ready" />
+    <img src="https://img.shields.io/badge/Offline-First-green?style=flat-square" alt="Offline First" />
+    <img src="https://img.shields.io/badge/Bluetooth-Mesh-purple?style=flat-square" alt="Bluetooth Mesh" />
+    <img src="https://img.shields.io/badge/E2E-Encrypted-red?style=flat-square" alt="End-to-End Encrypted" />
   </p>
 </div>
 
 ---
 
-Create complex business rules with an intuitive drag-and-drop interface. No more JSON wrestling - build rules visually and export to your rule engine.
+**BluChat** is a revolutionary Progressive Web App that enables secure, offline messaging through Bluetooth mesh networking. When the internet fails, BluChat keeps you connected with your peers through encrypted, peer-to-peer communication.
 
-```typescript
-// Instead of writing complex JSON...
-const rule = {
-  conditions: [
-    {
-      and: [
-        { field: "$.user.tier", operator: "equals", value: "premium" },
-        { field: "$.order.total", operator: "greater-than", value: 100 }
-      ],
-      result: { discount: 0.15, shipping: "free" }
-    }
-  ]
-};
+## ✨ Why BluChat?
 
-// Just drag, drop, and configure visually! 🎨
-<RuleBuilder 
-  onRuleChange={setRule}
-  availableFields={fields}
-  theme="dark"
-/>
-```
+In our hyper-connected world, we often forget that connectivity isn't guaranteed. Natural disasters, network outages, or simply being in remote areas can cut us off from traditional messaging platforms. BluChat solves this by creating a resilient communication network that works entirely offline.
 
-## 🚀 Why Visual Builder?
+### 🌟 Key Highlights
 
-**Intuitive Visual Interface**
-- 🎨 **Drag & Drop** - Build rules by dragging components onto a canvas
-- 🌲 **Tree Structure** - Visual representation of complex nested logic
-- 📦 **Component Palette** - Pre-built operators, fields, and logic blocks
-- 🎯 **Drop Zones** - Smart targeting for precise rule construction
+- **🔄 Offline-First**: Works without internet connection
+- **🔐 End-to-End Encryption**: Messages secured with TweetNaCl cryptography
+- **📡 Bluetooth Mesh**: Multi-hop message routing through peer network
+- **⚡ Progressive Web App**: Install like a native app, works everywhere
+- **🌐 Cross-Platform**: Works on desktop, mobile, and tablets
+- **🔒 Privacy-Focused**: No servers, no data collection, no tracking
 
-**Developer-Friendly Experience**
-- ⚡ **Real-time Preview** - See JSON output as you build
-- 🔄 **Live Evaluation** - Test rules instantly with sample data
-- 📈 **History Management** - Undo/redo with 100-entry history
-- ⌨️ **Keyboard Shortcuts** - Professional keyboard navigation
+## 🚀 Quick Start
 
-**Production-Ready Features**
-- 🛡️ **TypeScript Native** - Full type safety and IntelliSense support
-- 🎨 **Theme System** - Light/dark modes with full customization
-- ♿ **Accessible** - WCAG compliant with screen reader support
-- 📱 **Responsive** - Works on desktop, tablet, and mobile devices
+### Prerequisites
 
-**Extensible & Customizable**
-- 🔧 **Custom Operators** - Add your own business-specific operators
-- 🎛️ **Field Discovery** - Auto-suggest fields from your data schema
-- 🌈 **Custom Themes** - Match your application's design system
-- 📊 **Export Options** - JSON, TypeScript, or custom formats
+- Modern web browser with Bluetooth support (Chrome, Edge, Opera)
+- Bluetooth-enabled device
+- HTTPS connection (required for Web Bluetooth API)
 
-## 🎬 Quick Start
+### Installation
 
-```bash
-npm install @usex/rule-engine-builder @usex/rule-engine react
-```
-
-### Basic Usage
-
-```tsx
-import React, { useState } from 'react';
-import { RuleBuilder } from '@usex/rule-engine-builder';
-import { RuleEngine } from '@usex/rule-engine';
-
-function App() {
-  const [rule, setRule] = useState(null);
-  
-  // Define available fields for your users
-  const availableFields = [
-    { name: '$.user.tier', type: 'string', label: 'User Tier' },
-    { name: '$.user.age', type: 'number', label: 'User Age' },
-    { name: '$.order.total', type: 'number', label: 'Order Total' },
-    { name: '$.order.items', type: 'array', label: 'Order Items' }
-  ];
-
-  // Test data for live evaluation
-  const testData = {
-    user: { tier: 'premium', age: 28 },
-    order: { total: 150, items: ['laptop', 'mouse'] }
-  };
-
-  return (
-    <div className="app">
-      <h1>Build Your Business Rules</h1>
-      
-      <RuleBuilder
-        rule={rule}
-        onRuleChange={setRule}
-        availableFields={availableFields}
-        testData={testData}
-        theme="auto"
-        showPreview={true}
-        showHistory={true}
-      />
-      
-      {rule && (
-        <div className="rule-output">
-          <h3>Generated Rule:</h3>
-          <pre>{JSON.stringify(rule, null, 2)}</pre>
-          
-          <button onClick={() => testRule()}>
-            Test Rule
-          </button>
-        </div>
-      )}
-    </div>
-  );
-
-  async function testRule() {
-    if (!rule) return;
-    
-    const result = await RuleEngine.evaluate(rule, testData);
-    console.log('Rule Result:', result);
-  }
-}
-```
-
-## 🏗️ Core Components
-
-### RuleBuilder (Main Component)
-
-The primary visual rule construction interface.
-
-```tsx
-<RuleBuilder
-  rule={rule}                    // Current rule state
-  onRuleChange={setRule}         // Callback when rule changes
-  availableFields={fields}       // Available fields for selection
-  testData={testData}           // Sample data for live testing
-  theme="dark"                  // Theme: 'light' | 'dark' | 'auto'
-  showPreview={true}            // Show JSON preview panel
-  showHistory={true}            // Enable undo/redo functionality
-  customOperators={operators}    // Custom business operators
-  onValidationError={onError}   // Validation error callback
-  className="my-rule-builder"   // Custom CSS classes
-/>
-```
-
-### RuleEvaluator
-
-Real-time rule evaluation with visual feedback.
-
-```tsx
-<RuleEvaluator
-  rule={rule}
-  testData={testData}
-  engine={RuleEngine}
-  onResult={handleResult}
-  showSteps={true}              // Show evaluation steps
-  highlightActive={true}        // Highlight active rule paths
-/>
-```
-
-### ModernConstraintEditor
-
-Advanced constraint editing with intelligent suggestions.
-
-```tsx
-<ModernConstraintEditor
-  constraint={constraint}
-  onConstraintChange={setConstraint}
-  availableFields={fields}
-  operators={operators}
-  showFieldSuggestions={true}
-  allowCustomFields={true}
-/>
-```
-
-## 🔧 Component Showcase
-
-### Building Blocks
-
-The visual builder provides intuitive components for every rule element:
-
-#### Logic Operators
-- **AND** - All conditions must be true
-- **OR** - Any condition must be true  
-- **NONE** - No conditions must be true
-
-#### Comparison Operators
-- **Equals (=)** - Exact value matching
-- **Greater Than (>)** - Numeric comparison
-- **Contains** - Array/string inclusion
-- **Matches** - Regular expression patterns
-
-#### Field Selectors
-- **JSONPath Fields** - `$.user.profile.name`
-- **Nested Properties** - Deep object navigation
-- **Array Elements** - `$.items[0].price`
-- **Custom Fields** - User-defined properties
-
-#### Value Inputs
-- **Static Values** - Fixed strings, numbers, booleans
-- **Dynamic References** - `$.other.field`
-- **Arrays** - Multiple value selection
-- **Date/Time** - Calendar and time pickers
-
-## 🎯 Real-World Examples
-
-### E-commerce Discount Builder
-
-```tsx
-function DiscountRuleBuilder() {
-  const [discountRule, setDiscountRule] = useState(null);
-  
-  const ecommerceFields = [
-    { name: '$.customer.tier', type: 'string', label: 'Customer Tier', 
-      options: ['bronze', 'silver', 'gold', 'platinum'] },
-    { name: '$.cart.total', type: 'number', label: 'Cart Total' },
-    { name: '$.cart.itemCount', type: 'number', label: 'Number of Items' },
-    { name: '$.customer.isFirstOrder', type: 'boolean', label: 'First Order' },
-    { name: '$.promotions.active', type: 'array', label: 'Active Promotions' }
-  ];
-
-  const customOperators = [
-    {
-      name: 'is-weekend',
-      label: 'Is Weekend',
-      category: 'datetime',
-      description: 'Check if current date is weekend'
-    },
-    {
-      name: 'bulk-discount-eligible',
-      label: 'Bulk Discount Eligible',
-      category: 'business',
-      description: 'Check if order qualifies for bulk pricing'
-    }
-  ];
-
-  return (
-    <div className="discount-builder">
-      <h2>Discount Rule Builder</h2>
-      
-      <RuleBuilder
-        rule={discountRule}
-        onRuleChange={setDiscountRule}
-        availableFields={ecommerceFields}
-        customOperators={customOperators}
-        theme="light"
-        resultTemplate={{
-          discount: 0,
-          code: '',
-          message: '',
-          expires: null
-        }}
-      />
-    </div>
-  );
-}
-```
-
-### User Access Control Builder
-
-```tsx
-function AccessControlBuilder() {
-  const [accessRule, setAccessRule] = useState(null);
-  
-  const accessFields = [
-    { name: '$.user.role', type: 'string', label: 'User Role' },
-    { name: '$.user.department', type: 'string', label: 'Department' },
-    { name: '$.user.clearanceLevel', type: 'number', label: 'Clearance Level' },
-    { name: '$.resource.sensitivity', type: 'string', label: 'Resource Sensitivity' },
-    { name: '$.session.duration', type: 'number', label: 'Session Duration' },
-    { name: '$.time.currentHour', type: 'number', label: 'Current Hour' }
-  ];
-
-  return (
-    <div className="access-builder">
-      <h2>Access Control Rules</h2>
-      
-      <RuleBuilder
-        rule={accessRule}
-        onRuleChange={setAccessRule}
-        availableFields={accessFields}
-        theme="dark"
-        showHistory={true}
-        resultTemplate={{
-          allowed: false,
-          permissions: [],
-          expires: null,
-          reason: ''
-        }}
-      />
-      
-      <RuleEvaluator
-        rule={accessRule}
-        testData={sampleUserSession}
-        showSteps={true}
-        onResult={(result) => {
-          console.log('Access Decision:', result);
-        }}
-      />
-    </div>
-  );
-}
-```
-
-### Form Validation Builder
-
-```tsx
-function ValidationBuilder() {
-  const [validationRules, setValidationRules] = useState([]);
-  
-  const formFields = [
-    { name: 'email', type: 'string', label: 'Email Address' },
-    { name: 'password', type: 'string', label: 'Password' },
-    { name: 'confirmPassword', type: 'string', label: 'Confirm Password' },
-    { name: 'age', type: 'number', label: 'Age' },
-    { name: 'country', type: 'string', label: 'Country' },
-    { name: 'acceptTerms', type: 'boolean', label: 'Accept Terms' }
-  ];
-
-  return (
-    <div className="validation-builder">
-      <h2>Form Validation Rules</h2>
-      
-      {validationRules.map((rule, index) => (
-        <div key={index} className="validation-rule">
-          <h3>Rule {index + 1}</h3>
-          
-          <RuleBuilder
-            rule={rule}
-            onRuleChange={(newRule) => {
-              const updated = [...validationRules];
-              updated[index] = newRule;
-              setValidationRules(updated);
-            }}
-            availableFields={formFields}
-            mode="validation"
-            showPreview={false}
-          />
-        </div>
-      ))}
-      
-      <button onClick={() => addValidationRule()}>
-        Add Validation Rule
-      </button>
-    </div>
-  );
-}
-```
-
-## 🎨 Advanced Features
-
-### Custom Themes
-
-```tsx
-const customTheme = {
-  colors: {
-    primary: '#6366f1',
-    secondary: '#10b981',
-    background: '#f8fafc',
-    surface: '#ffffff',
-    text: '#1f2937',
-    border: '#e5e7eb'
-  },
-  spacing: {
-    sm: '0.5rem',
-    md: '1rem',
-    lg: '1.5rem'
-  },
-  borderRadius: '0.75rem',
-  shadows: {
-    sm: '0 1px 2px rgba(0, 0, 0, 0.05)',
-    md: '0 4px 6px rgba(0, 0, 0, 0.1)'
-  }
-};
-
-<RuleBuilder
-  rule={rule}
-  onRuleChange={setRule}
-  theme={customTheme}
-  availableFields={fields}
-/>
-```
-
-### Field Discovery
-
-```tsx
-// Auto-discover fields from your data schema
-const fields = useFieldDiscovery(sampleData, {
-  maxDepth: 3,
-  includeArrays: true,
-  typeInference: true
-});
-
-<RuleBuilder
-  rule={rule}
-  onRuleChange={setRule}
-  availableFields={fields}
-  allowFieldDiscovery={true}
-  onFieldDiscovered={(field) => {
-    console.log('New field discovered:', field);
-  }}
-/>
-```
-
-### History Management
-
-```tsx
-function RuleBuilderWithHistory() {
-  const [rule, setRule] = useState(null);
-  const { history, undo, redo, canUndo, canRedo } = useRuleHistory();
-
-  return (
-    <div>
-      <div className="history-controls">
-        <button 
-          onClick={undo} 
-          disabled={!canUndo}
-          title="Undo (Ctrl+Z)"
-        >
-          ↶ Undo
-        </button>
-        
-        <button 
-          onClick={redo} 
-          disabled={!canRedo}
-          title="Redo (Ctrl+Y)"
-        >
-          ↷ Redo
-        </button>
-        
-        <span className="history-count">
-          Step {history.currentIndex + 1} of {history.entries.length}
-        </span>
-      </div>
-
-      <RuleBuilder
-        rule={rule}
-        onRuleChange={setRule}
-        showHistory={true}
-        maxHistoryEntries={100}
-      />
-    </div>
-  );
-}
-```
-
-### Keyboard Shortcuts
-
-The builder supports professional keyboard navigation:
-
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl+Z` | Undo last change |
-| `Ctrl+Y` | Redo last undone change |
-| `Ctrl+D` | Duplicate selected component |
-| `Delete` | Remove selected component |
-| `Tab` | Navigate between components |
-| `Enter` | Edit selected component |
-| `Escape` | Cancel current operation |
-| `Ctrl+S` | Export rule (custom handler) |
-
-## 🏎️ Performance & Optimization
-
-### Virtual Scrolling
-
-For large rule sets, the builder uses virtual scrolling:
-
-```tsx
-<RuleBuilder
-  rule={complexRule}
-  onRuleChange={setRule}
-  virtualScrolling={true}
-  itemHeight={60}
-  maxVisibleItems={50}
-/>
-```
-
-### Lazy Loading
-
-Components are loaded on-demand for better performance:
-
-```tsx
-const LazyRuleBuilder = lazy(() => import('@usex/rule-engine-builder'));
-
-function App() {
-  return (
-    <Suspense fallback={<div>Loading rule builder...</div>}>
-      <LazyRuleBuilder />
-    </Suspense>
-  );
-}
-```
-
-### Optimized Rendering
-
-```tsx
-// Use memo for expensive field calculations
-const availableFields = useMemo(() => 
-  generateFieldsFromSchema(schema), [schema]
-);
-
-// Debounce rule changes to reduce re-renders
-const debouncedOnChange = useMemo(
-  () => debounce(setRule, 300),
-  []
-);
-
-<RuleBuilder
-  rule={rule}
-  onRuleChange={debouncedOnChange}
-  availableFields={availableFields}
-  optimizeRendering={true}
-/>
-```
-
-## 🎓 TypeScript Support
-
-Full type safety for all components and props:
-
-```tsx
-interface CustomField {
-  name: string;
-  type: 'string' | 'number' | 'boolean' | 'array' | 'object';
-  label: string;
-  description?: string;
-  options?: string[];
-  validation?: {
-    required?: boolean;
-    min?: number;
-    max?: number;
-    pattern?: string;
-  };
-}
-
-interface CustomRule<T = any> {
-  id: string;
-  conditions: Condition<T>[];
-  result?: T;
-  metadata?: {
-    name: string;
-    description: string;
-    created: Date;
-    modified: Date;
-  };
-}
-
-// Type-safe rule builder
-const Builder = () => {
-  const [rule, setRule] = useState<CustomRule<DiscountResult>>(null);
-  
-  return (
-    <RuleBuilder<DiscountResult>
-      rule={rule}
-      onRuleChange={setRule}
-      availableFields={typedFields}
-      resultType="discount"
-    />
-  );
-};
-```
-
-## 🧪 Testing Components
-
-```tsx
-import { render, screen, fireEvent } from '@testing-library/react';
-import { RuleBuilder } from '@usex/rule-engine-builder';
-
-describe('RuleBuilder', () => {
-  const mockFields = [
-    { name: 'age', type: 'number', label: 'Age' },
-    { name: 'country', type: 'string', label: 'Country' }
-  ];
-
-  it('should render field palette', () => {
-    render(
-      <RuleBuilder
-        availableFields={mockFields}
-        onRuleChange={jest.fn()}
-      />
-    );
-    
-    expect(screen.getByText('Age')).toBeInTheDocument();
-    expect(screen.getByText('Country')).toBeInTheDocument();
-  });
-
-  it('should handle drag and drop', () => {
-    const onChange = jest.fn();
-    
-    render(
-      <RuleBuilder
-        availableFields={mockFields}
-        onRuleChange={onChange}
-      />
-    );
-    
-    const ageField = screen.getByText('Age');
-    const dropZone = screen.getByTestId('drop-zone');
-    
-    fireEvent.dragStart(ageField);
-    fireEvent.drop(dropZone);
-    
-    expect(onChange).toHaveBeenCalledWith(
-      expect.objectContaining({
-        conditions: expect.arrayContaining([
-          expect.objectContaining({
-            field: 'age'
-          })
-        ])
-      })
-    );
-  });
-});
-```
-
-## 📚 Documentation & Resources
-
-- 🏗️ **[Component Guide](./docs/components.md)** - Detailed component documentation
-- 🎨 **[Theming Guide](./docs/theming.md)** - Customization and styling
-- ⌨️ **[Keyboard Shortcuts](./docs/shortcuts.md)** - Complete keyboard reference
-- 🔧 **[Integration Examples](./docs/integration.md)** - Framework-specific examples
-- 🎯 **[Best Practices](./docs/best-practices.md)** - Performance and UX guidelines
-- 📋 **[Changelog](./CHANGELOG.md)** - Version history and updates
-
-## 🤝 Contributing
-
-We welcome contributions! Whether it's:
-- 🐛 Bug reports and fixes
-- ✨ New components or features
-- 📖 Documentation improvements
-- 🎨 Theme contributions
-
-See our [Contributing Guide](../../CONTRIBUTING.md) for details.
+1. **Visit the App**: Navigate to the BluChat URL in your browser
+2. **Install PWA**: Click "Install" when prompted, or use your browser's install option
+3. **Enable Bluetooth**: Grant Bluetooth permissions when requested
+4. **Start Chatting**: Create or join channels and start messaging!
 
 ### Development Setup
 
 ```bash
 # Clone the repository
-git clone https://github.com/ali-master/rule-engine.git
-cd rule-engine/packages/builder
+git clone https://github.com/ali-master/bluchat.git
+cd bluchat
 
 # Install dependencies
 pnpm install
@@ -659,38 +64,199 @@ pnpm install
 # Start development server
 pnpm dev
 
-# Run tests
-pnpm test
-
 # Build for production
 pnpm build
 ```
 
-## 🆚 Why Choose This Builder?
+## 🔧 Features
 
-| Feature | @usex/rule-engine-builder | React QueryBuilder | React Awesome Query Builder |
-|---------|---------------------------|--------------------|-----------------------------|
-| TypeScript Native | ✅ | ⚠️ Partial | ⚠️ Partial |
-| Drag & Drop | ✅ | ❌ | ✅ |
-| Real-time Evaluation | ✅ | ❌ | ❌ |
-| History/Undo | ✅ | ❌ | ❌ |
-| Custom Themes | ✅ | ⚠️ Limited | ✅ |
-| Mobile Responsive | ✅ | ⚠️ Partial | ❌ |
-| JSONPath Support | ✅ | ❌ | ❌ |
-| Bundle Size | 45KB | 120KB | 180KB |
-| Tree Visualization | ✅ | ❌ | ✅ |
-| Keyboard Shortcuts | ✅ | ❌ | ❌ |
+### Core Messaging
+- **Multi-Channel Support**: Create and join different conversation channels
+- **Real-Time Messaging**: Instant message delivery between connected peers
+- **Message Persistence**: Offline storage using IndexedDB
+- **Channel Security**: Password-protected private channels
+
+### Security & Privacy
+- **End-to-End Encryption**: All messages encrypted with industry-standard cryptography
+- **Perfect Forward Secrecy**: Unique keys for each session
+- **No Central Server**: Completely decentralized architecture
+- **Local Data Only**: All data stored locally on your device
+
+### Connectivity
+- **Bluetooth Low Energy**: Efficient power consumption
+- **Mesh Networking**: Messages route through multiple peers
+- **Auto-Discovery**: Automatic peer detection and connection
+- **Connection Management**: Smart reconnection and peer management
+
+### User Experience
+- **Modern UI**: Clean, responsive interface built with shadcn/ui
+- **Dark/Light Mode**: Automatic theme switching
+- **Mobile-First**: Optimized for touch devices
+- **Offline Indicators**: Clear connection status feedback
+
+## 🗺️ Roadmap
+
+### ✅ Completed Features
+
+- [x] **Core Infrastructure**
+  - [x] Progressive Web App setup with service workers
+  - [x] Bluetooth Web API integration
+  - [x] React + TypeScript foundation
+  - [x] Zustand state management
+
+- [x] **Messaging System**
+  - [x] Real-time peer-to-peer messaging
+  - [x] Multi-channel support
+  - [x] Message persistence with IndexedDB
+  - [x] Message routing with TTL (Time-To-Live)
+
+- [x] **Security**
+  - [x] End-to-end encryption with TweetNaCl
+  - [x] Key derivation with Scrypt
+  - [x] Message signing and verification
+  - [x] Channel password protection
+
+- [x] **User Interface**
+  - [x] Modern responsive design
+  - [x] shadcn/ui component library
+  - [x] Dark/light theme support
+  - [x] Mobile-optimized interface
+  - [x] Connection status indicators
+
+- [x] **Developer Experience**
+  - [x] TypeScript strict mode
+  - [x] ESLint + Prettier configuration
+  - [x] Vite build system
+  - [x] Hot module replacement
+
+### 🔄 In Progress
+
+- [ ] **Enhanced Security**
+  - [ ] Perfect Forward Secrecy implementation
+  - [ ] Key rotation mechanisms
+  - [ ] Secure peer authentication
+
+- [ ] **Performance Optimization**
+  - [ ] Message compression
+  - [ ] Efficient routing algorithms
+  - [ ] Battery optimization
+
+### 🚀 Upcoming Features
+
+- [ ] **Advanced Messaging**
+  - [ ] File sharing support
+  - [ ] Voice messages
+  - [ ] Message reactions and replies
+  - [ ] Message search functionality
+  - [ ] Message backup/export
+
+- [ ] **Network Features**
+  - [ ] Wi-Fi Direct support
+  - [ ] Hybrid mesh networking (Bluetooth + Wi-Fi)
+  - [ ] Bridge mode (connect multiple mesh networks)
+  - [ ] Network topology visualization
+
+- [ ] **User Experience**
+  - [ ] User profiles and avatars
+  - [ ] Message notifications
+  - [ ] Typing indicators
+  - [ ] Message read receipts
+  - [ ] Contact management
+
+- [ ] **Developer Features**
+  - [ ] Plugin system
+  - [ ] API for third-party integrations
+  - [ ] Custom encryption protocols
+  - [ ] Network diagnostics tools
+
+- [ ] **Platform Support**
+  - [ ] Electron desktop app
+  - [ ] React Native mobile app
+  - [ ] Browser extension
+  - [ ] Command-line interface
+
+### 🎯 Long-term Vision
+
+- [ ] **Enterprise Features**
+  - [ ] Organization management
+  - [ ] Admin controls and moderation
+  - [ ] Compliance and audit logs
+  - [ ] Integration with enterprise systems
+
+- [ ] **Research & Innovation**
+  - [ ] Quantum-resistant cryptography
+  - [ ] AI-powered spam detection
+  - [ ] Advanced mesh routing protocols
+  - [ ] Emergency communication modes
+
+## 🛠️ Technology Stack
+
+- **Frontend**: React 18, TypeScript, Vite
+- **State Management**: Zustand
+- **UI Components**: shadcn/ui, Tailwind CSS
+- **Cryptography**: TweetNaCl, Scrypt-JS
+- **Storage**: IndexedDB
+- **Connectivity**: Web Bluetooth API
+- **PWA**: Workbox, Service Workers
+
+## 📱 Browser Support
+
+| Browser | Desktop | Mobile | Notes |
+|---------|---------|---------|-------|
+| Chrome | ✅ | ✅ | Full support |
+| Edge | ✅ | ✅ | Full support |
+| Opera | ✅ | ✅ | Full support |
+| Safari | ❌ | ❌ | No Web Bluetooth support |
+| Firefox | ❌ | ❌ | No Web Bluetooth support |
+
+## 🔒 Security
+
+BluChat takes security seriously:
+
+- **No Data Collection**: We don't collect, store, or analyze any user data
+- **Local Storage**: All data remains on your device
+- **Open Source**: Code is publicly auditable
+- **Standard Cryptography**: Uses well-established encryption libraries
+- **Regular Updates**: Security patches and improvements
+
+## 🤝 Contributing
+
+We welcome contributions from the community! Whether you're interested in:
+
+- 🐛 Bug fixes and improvements
+- ✨ New features and enhancements
+- 📚 Documentation improvements
+- 🎨 UI/UX enhancements
+- 🔒 Security audits
+
+Please see our [Contributing Guide](./CONTRIBUTING.md) for details on how to get started.
+
+### Development Guidelines
+
+1. **Code Quality**: Follow TypeScript best practices
+2. **Testing**: Write tests for new features
+3. **Documentation**: Update docs for user-facing changes
+4. **Security**: Consider security implications of all changes
 
 ## 📄 License
 
-MIT © [Ali Torki](https://github.com/ali-master)
+MIT License - see [LICENSE](./LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+BluChat is inspired by the [BitChat](https://github.com/jackjackbits/bitchat) project and built upon the shoulders of many open-source projects:
+
+- [TweetNaCl](https://tweetnacl.js.org/) for cryptography
+- [React](https://react.dev/) for the UI framework
+- [shadcn/ui](https://ui.shadcn.com/) for beautiful components
+- [Zustand](https://zustand-demo.pmnd.rs/) for state management
 
 ---
 
 <div align="center">
 
-**Built with ❤️ for modern React applications**
+**Built with ❤️ by [Ali Torki](https://github.com/ali-master) for a more connected world**
 
-[⭐ Star us on GitHub](https://github.com/ali-master/rule-engine) • [🐛 Report Issues](https://github.com/ali-master/rule-engine/issues) • [💬 Discussions](https://github.com/ali-master/rule-engine/discussions)
+[🌟 Star us on GitHub](https://github.com/ali-master/bluchat) • [🐛 Report Issues](https://github.com/ali-master/bluchat/issues) • [💬 Join Community](https://github.com/ali-master/bluchat/discussions)
 
 </div>

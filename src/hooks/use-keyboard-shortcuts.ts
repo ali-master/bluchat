@@ -46,20 +46,3 @@ export const useKeyboardShortcuts = (shortcuts: ShortcutConfig[]) => {
 
   return shortcuts;
 };
-
-// Common shortcuts
-export const commonShortcuts = {
-  undo: { key: "z", ctrl: true },
-  redo: { key: "y", ctrl: true },
-  redoAlt: { key: "z", ctrl: true, shift: true },
-  save: { key: "s", ctrl: true },
-  expandAll: { key: "e", ctrl: true, shift: true },
-  collapseAll: { key: "c", ctrl: true, shift: true },
-  addRule: { key: "r", ctrl: true },
-  addGroup: { key: "g", ctrl: true },
-  delete: { key: "Delete" },
-  duplicate: { key: "d", ctrl: true },
-  help: { key: "?", shift: true },
-  search: { key: "f", ctrl: true },
-  test: { key: "t", ctrl: true },
-};

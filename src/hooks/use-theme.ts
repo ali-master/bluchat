@@ -5,7 +5,7 @@ type Theme = "light" | "dark" | "system";
 export function useTheme() {
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("rule-builder-theme") as Theme;
+      const stored = localStorage.getItem("bluchat-theme") as Theme;
       return stored || "system";
     }
     return "system";
@@ -33,7 +33,7 @@ export function useTheme() {
     };
 
     applyTheme(theme);
-    localStorage.setItem("rule-builder-theme", theme);
+    localStorage.setItem("bluchat-theme", theme);
 
     // Listen for system theme changes
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
