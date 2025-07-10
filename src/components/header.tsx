@@ -2,6 +2,7 @@ import { Menu, Bluetooth } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/stores/app-store";
 import { ConnectionStatus } from "./connection-status";
+import { ThemeToggle } from "./theme-toggle";
 
 export function Header() {
   const { toggleSidebar, setScanning } = useAppStore();
@@ -33,6 +34,7 @@ export function Header() {
 
         <div className="flex items-center gap-4">
           <ConnectionStatus />
+          <ThemeToggle />
           <Button
             variant="outline"
             size="sm"

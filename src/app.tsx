@@ -9,7 +9,6 @@ import { Sidebar } from "@/components/sidebar";
 import { ChatArea } from "@/components/chat-area";
 import { useConfirm } from "@/hooks/use-confirm";
 import { confirmService } from "@/services/confirm-service";
-import { cn } from "@/lib/utils";
 
 // Initialize services
 const bluetoothService = new BluetoothService();
@@ -17,8 +16,13 @@ const storageService = new StorageService();
 const cryptoService = new CryptoService();
 
 export function App() {
-  const { isSidebarOpen, addMessage, addPeer, removePeer } = useAppStore();
+  const { addMessage, addPeer, removePeer, theme } = useAppStore();
   const { confirm, ConfirmDialog } = useConfirm();
+
+  useEffect(() => {
+    // Initialize theme on app start
+    document.documentElement.classList.toggle("dark", theme === "dark");
+  }, [theme]);
 
   useEffect(() => {
     // Initialize confirm service
@@ -43,7 +47,7 @@ export function App() {
       }
     };
 
-    initServices();
+    void initServices();
 
     // Set up Bluetooth event listeners
     bluetoothService.on("peer-connected", (peer) => {
@@ -118,12 +122,7 @@ export function App() {
   return (
     <div className="flex h-screen bg-background">
       <Sidebar />
-      <div
-        className={cn(
-          "flex-1 flex flex-col transition-all duration-300",
-          isSidebarOpen ? "ml-64" : "ml-0",
-        )}
-      >
+      <div className={"flex-1 flex flex-col transition-all duration-300 ml-0"}>
         <Header />
         <ChatArea />
       </div>

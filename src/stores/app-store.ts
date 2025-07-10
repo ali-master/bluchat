@@ -19,6 +19,7 @@ interface AppState {
 
   // UI state
   isSidebarOpen: boolean;
+  theme: "light" | "dark";
 
   // Crypto state
   cryptoService: CryptoService;
@@ -39,6 +40,8 @@ interface AppState {
   removeChannel: (channelName: string) => void;
 
   toggleSidebar: () => void;
+  setTheme: (theme: "light" | "dark") => void;
+  toggleTheme: () => void;
 
   // Crypto actions
   initializeCrypto: () => Promise<void>;
@@ -74,6 +77,7 @@ export const useAppStore = create<AppState>()(
         currentChannel: "public",
         channels: [{ name: "public", password: null, createdAt: Date.now() }],
         isSidebarOpen: true,
+        theme: "dark",
         cryptoService: new CryptoService(),
         publicKey: null,
 
@@ -159,6 +163,16 @@ export const useAppStore = create<AppState>()(
         toggleSidebar: () =>
           set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
 
+        setTheme: (theme) => {
+          set({ theme });
+          document.documentElement.classList.toggle("dark", theme === "dark");
+        },
+
+        toggleTheme: () => {
+          const newTheme = get().theme === "light" ? "dark" : "light";
+          get().setTheme(newTheme);
+        },
+
         // Crypto actions
         initializeCrypto: async () => {
           const { cryptoService } = get();
@@ -237,6 +251,7 @@ export const useAppStore = create<AppState>()(
         partialize: (state) => ({
           channels: state.channels,
           currentChannel: state.currentChannel,
+          theme: state.theme,
         }),
       },
     ),
