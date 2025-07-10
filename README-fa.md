@@ -12,10 +12,15 @@
   </p>
 
   <p>
-    <img src="https://img.shields.io/badge/PWA-آماده-blue?style=flat-square" alt="PWA آماده" />
-    <img src="https://img.shields.io/badge/آفلاین-اولویت-green?style=flat-square" alt="آفلاین اولویت" />
-    <img src="https://img.shields.io/badge/بلوتوث-شبکه‌ای-purple?style=flat-square" alt="شبکه بلوتوث" />
-    <img src="https://img.shields.io/badge/رمزنگاری-سرتاسری-red?style=flat-square" alt="رمزنگاری سرتاسری" />
+    <a href="./README-fa.md">🇮🇷 فارسی</a> •
+    <a href="./README.md">🇺🇸 English</a>
+  </p>
+
+  <p>
+    <img src="https://img.shields.io/badge/PWA-Ready-blue?style=flat-square" alt="PWA Ready" />
+    <img src="https://img.shields.io/badge/Offline-First-green?style=flat-square" alt="Offline First" />
+    <img src="https://img.shields.io/badge/Bluetooth-Mesh-purple?style=flat-square" alt="Bluetooth Mesh" />
+    <img src="https://img.shields.io/badge/E2E-Encrypted-red?style=flat-square" alt="End-to-End Encrypted" />
   </p>
 </div>
 

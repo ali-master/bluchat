@@ -12,6 +12,11 @@
   </p>
 
   <p>
+    <a href="./README-fa.md">🇮🇷 فارسی</a> •
+    <a href="./README.md">🇺🇸 English</a>
+  </p>
+
+  <p>
     <img src="https://img.shields.io/badge/PWA-Ready-blue?style=flat-square" alt="PWA Ready" />
     <img src="https://img.shields.io/badge/Offline-First-green?style=flat-square" alt="Offline First" />
     <img src="https://img.shields.io/badge/Bluetooth-Mesh-purple?style=flat-square" alt="Bluetooth Mesh" />
