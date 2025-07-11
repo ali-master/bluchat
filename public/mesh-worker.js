@@ -74,8 +74,11 @@ self.addEventListener("activate", (event) => {
  * Handle fetch requests
  */
 self.addEventListener("fetch", (event) => {
-  // Only cache GET requests
+  // Only cache GET requests from http/https
   if (event.request.method !== "GET") return;
+
+  const url = new URL(event.request.url);
+  if (url.protocol !== "http:" && url.protocol !== "https:") return;
 
   event.respondWith(
     caches.match(event.request).then((response) => {
@@ -86,13 +89,23 @@ self.addEventListener("fetch", (event) => {
 
       // Otherwise fetch from network
       return fetch(event.request).then((networkResponse) => {
-        // Cache successful responses
+        // Cache successful responses from http/https only
         if (networkResponse && networkResponse.status === 200) {
-          const responseToCache = networkResponse.clone();
+          const url = new URL(event.request.url);
 
-          caches.open(CONFIG.CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
+          // Only cache http/https requests
+          if (url.protocol === "http:" || url.protocol === "https:") {
+            const responseToCache = networkResponse.clone();
+
+            caches
+              .open(CONFIG.CACHE_NAME)
+              .then((cache) => {
+                cache.put(event.request, responseToCache);
+              })
+              .catch((error) => {
+                console.warn("[Mesh Worker] Cache put failed:", error);
+              });
+          }
         }
 
         return networkResponse;
