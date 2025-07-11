@@ -50,6 +50,10 @@ export class BluetoothService extends EventEmitter {
   private async initializeService(): Promise<void> {
     try {
       await this.uuidService.initialize();
+
+      // Request Bluetooth permissions on initialization
+      await this.requestBluetoothPermissions();
+
       this.initializeOptimizations();
       this.isInitialized = true;
       this.emit("service-initialized", {
@@ -58,6 +62,41 @@ export class BluetoothService extends EventEmitter {
     } catch (error) {
       console.error("Failed to initialize Bluetooth service:", error);
       this.emit("service-error", error);
+    }
+  }
+
+  /**
+   * Request Bluetooth permissions on initialization
+   */
+  private async requestBluetoothPermissions(): Promise<void> {
+    try {
+      if (!navigator.bluetooth) {
+        throw new Error("Web Bluetooth API not supported in this browser");
+      }
+
+      // Check if Bluetooth is available
+      const isAvailable = await navigator.bluetooth.getAvailability();
+      if (!isAvailable) {
+        console.warn("Bluetooth is not available on this device");
+        return;
+      }
+
+      // Request a basic device to check permissions
+      const serviceUUID = this.uuidService.getServiceUUID();
+      await navigator.bluetooth.requestDevice({
+        filters: [{ services: [serviceUUID] }],
+        optionalServices: [
+          "0000180f-0000-1000-8000-00805f9b34fb", // Battery Service
+          "00001800-0000-1000-8000-00805f9b34fb", // Generic Access
+          "00001801-0000-1000-8000-00805f9b34fb", // Generic Attribute
+        ],
+      });
+
+      console.log("Bluetooth permissions granted");
+      this.emit("bluetooth-permissions-granted");
+    } catch (error) {
+      console.warn("Bluetooth permissions not granted:", error);
+      this.emit("bluetooth-permissions-denied", error);
     }
   }
 
@@ -164,9 +203,17 @@ export class BluetoothService extends EventEmitter {
 
       // Initial device connection request using generated UUID
       const serviceUUID = this.uuidService.getServiceUUID();
+
+      // Use more flexible filters for cross-platform compatibility
       const device = await navigator.bluetooth.requestDevice({
-        filters: [{ services: [serviceUUID] }],
-        optionalServices: [serviceUUID],
+        acceptAllDevices: true,
+        optionalServices: [
+          serviceUUID,
+          // Add common UUIDs for better compatibility
+          "0000180f-0000-1000-8000-00805f9b34fb", // Battery Service
+          "00001800-0000-1000-8000-00805f9b34fb", // Generic Access
+          "00001801-0000-1000-8000-00805f9b34fb", // Generic Attribute
+        ],
       });
 
       await this.connectToDevice(device);
@@ -235,19 +282,59 @@ export class BluetoothService extends EventEmitter {
    */
   private async connectToDevice(device: BluetoothDevice) {
     try {
+      console.log(`Attempting to connect to: ${device.name || device.id}`);
       const server = await device.gatt!.connect();
       const serviceUUID = this.uuidService.getServiceUUID();
       const characteristicUUID = this.uuidService.getCharacteristicUUID();
 
-      const service = await server.getPrimaryService(serviceUUID);
-      const characteristic =
-        await service.getCharacteristic(characteristicUUID);
+      let service: BluetoothRemoteGATTService;
+      let characteristic: BluetoothRemoteGATTCharacteristic;
+
+      try {
+        // Try custom service first
+        service = await server.getPrimaryService(serviceUUID);
+        characteristic = await service.getCharacteristic(characteristicUUID);
+        console.log("Connected using custom UUID service");
+      } catch (error) {
+        console.warn("Custom service not found, trying fallback...");
+
+        // Try common services as fallback for cross-platform compatibility
+        const fallbackServices = [
+          {
+            service: "0000180f-0000-1000-8000-00805f9b34fb",
+            char: "00002a19-0000-1000-8000-00805f9b34fb",
+          }, // Battery
+          {
+            service: "0000180a-0000-1000-8000-00805f9b34fb",
+            char: "00002a29-0000-1000-8000-00805f9b34fb",
+          }, // Device Info
+        ];
+
+        let connected = false;
+        for (const fallback of fallbackServices) {
+          try {
+            service = await server.getPrimaryService(fallback.service);
+            characteristic = await service.getCharacteristic(fallback.char);
+            console.log(
+              `Connected using fallback service: ${fallback.service}`,
+            );
+            connected = true;
+            break;
+          } catch (e) {
+            continue;
+          }
+        }
+
+        if (!connected) {
+          throw new Error("No compatible service found");
+        }
+      }
 
       const connection: BluetoothConnection = {
         device,
         server,
-        service,
-        characteristic,
+        service: service!,
+        characteristic: characteristic!,
         rssi: -50,
       };
 
@@ -289,7 +376,7 @@ export class BluetoothService extends EventEmitter {
 
       // Update scanning optimizer connection count
       this.scanningOptimizer.setActiveConnectionCount(this.connections.size);
-      this.scanningOptimizer.emit("connection-established");
+      this.scanningOptimizer.recordConnectionSuccess(device.id);
 
       this.emit("peer-connected", peer);
     } catch (error) {

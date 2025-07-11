@@ -410,7 +410,10 @@ export class ScanningOptimizer extends EventEmitter {
         .filter((s) => s.connectionsEstablished > 0)
         .sort((a, b) => b.timestamp - a.timestamp)[0];
 
-      return lastConnection ? Date.now() - lastConnection.timestamp : Infinity;
+      // Return a large but finite number (24 hours) if never connected
+      return lastConnection
+        ? Date.now() - lastConnection.timestamp
+        : 24 * 60 * 60 * 1000;
     }
 
     return Date.now() - this.lastConnectionTime;
@@ -487,6 +490,29 @@ export class ScanningOptimizer extends EventEmitter {
       currentMode: this.getCurrentMode(),
       scanHistory: [...this.scanHistory],
     };
+  }
+
+  /**
+   * Record successful connection to update optimization strategy
+   * @param peerId - ID of the connected peer
+   */
+  recordConnectionSuccess(peerId: string): void {
+    // Update last connection time
+    this.lastConnectionTime = Date.now();
+
+    // Emit connection event for internal tracking
+    this.emit("connection-established");
+
+    // Record in scan stats if we have recent scan data
+    if (this.scanHistory.length > 0) {
+      const lastScan = this.scanHistory[this.scanHistory.length - 1];
+      if (Date.now() - lastScan.timestamp < 60000) {
+        // Within last minute
+        lastScan.connectionsEstablished++;
+      }
+    }
+
+    console.log(`Connection success recorded for peer: ${peerId}`);
   }
 
   /**

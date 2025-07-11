@@ -168,7 +168,11 @@ export class MeshCoordinator extends EventEmitter {
         { scope: "/" },
       );
 
-      this.serviceWorker = registration.active || registration.installing;
+      // Wait for service worker to be ready
+      await navigator.serviceWorker.ready;
+
+      this.serviceWorker =
+        registration.active || registration.installing || registration.waiting;
 
       // Listen for messages from service worker
       navigator.serviceWorker.addEventListener("message", (event) => {
@@ -177,8 +181,12 @@ export class MeshCoordinator extends EventEmitter {
         }
       });
 
-      // Register for background sync
-      if ("serviceWorker" in navigator && hasBackgroundSync(registration)) {
+      // Register for background sync only when worker is active
+      if (
+        registration.active &&
+        "serviceWorker" in navigator &&
+        hasBackgroundSync(registration)
+      ) {
         try {
           await registration.sync.register("mesh-sync");
           console.log("Background sync registered");
