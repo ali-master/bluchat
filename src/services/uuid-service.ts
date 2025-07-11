@@ -55,18 +55,35 @@ export class UUIDService {
    */
   async initialize(): Promise<void> {
     try {
-      await this.storageService.init();
+      console.log("UUID Service: Starting initialization...");
+
+      // Add timeout to prevent hanging
+      const initPromise = this.storageService.init();
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(
+          () => reject(new Error("Storage initialization timed out")),
+          10000,
+        );
+      });
+
+      await Promise.race([initPromise, timeoutPromise]);
+      console.log("UUID Service: Storage initialized, loading UUIDs...");
+
       await this.loadOrGenerateUUIDs();
+      console.log("UUID Service: Initialization complete");
     } catch (error) {
       console.error("Failed to initialize UUID service:", error);
       // Reset database and try again
       try {
+        console.log("UUID Service: Attempting database reset...");
         await this.storageService.resetDatabase();
         await this.storageService.init();
         await this.loadOrGenerateUUIDs();
+        console.log("UUID Service: Reset and initialization successful");
       } catch (resetError) {
         console.error("Failed to reset database:", resetError);
         // Use fallback configuration
+        console.log("UUID Service: Using fallback configuration");
         this.config = this.getFallbackConfig();
       }
     }
@@ -77,22 +94,36 @@ export class UUIDService {
    */
   private async loadOrGenerateUUIDs(): Promise<void> {
     try {
-      // Try to load existing configuration
-      const stored = await this.storageService.getItem(this.STORAGE_KEY);
+      // Try to load existing configuration with timeout
+      const loadPromise = this.storageService.getItem(this.STORAGE_KEY);
+      const timeoutPromise = new Promise<null>((_, reject) => {
+        setTimeout(() => reject(new Error("Load operation timed out")), 5000);
+      });
+
+      const stored = await Promise.race([loadPromise, timeoutPromise]);
 
       if (stored && this.isValidConfig(stored)) {
         this.config = stored;
         console.log("Loaded existing UUID configuration:", this.config);
       } else {
         // Generate new UUIDs
+        console.log("Generating new UUID configuration...");
         this.config = await this.generateUUIDConfig();
-        await this.storageService.setItem(this.STORAGE_KEY, this.config);
+
+        // Try to store but don't block on it
+        this.storageService
+          .setItem(this.STORAGE_KEY, this.config)
+          .catch((error) => {
+            console.warn("Failed to store UUID config:", error);
+          });
+
         console.log("Generated new UUID configuration:", this.config);
       }
     } catch (error) {
       console.error("Failed to load/generate UUIDs:", error);
       // Use fallback UUIDs
       this.config = this.getFallbackConfig();
+      console.log("Using fallback UUID configuration:", this.config);
     }
   }
 
@@ -118,23 +149,29 @@ export class UUIDService {
    * @returns Generated UUID configuration
    */
   private async generateUUIDConfig(): Promise<UUIDConfig> {
-    // Generate unique app ID based on installation
-    const appId = await this.generateAppId();
+    try {
+      // Generate unique app ID based on installation
+      const appId = await this.generateAppId();
 
-    // Generate service-specific UUIDs
-    const serviceUUID = this.generateServiceUUID(appId, "main");
-    const characteristicUUID = this.generateServiceUUID(appId, "data");
-    const notificationUUID = this.generateServiceUUID(appId, "notify");
-    const controlUUID = this.generateServiceUUID(appId, "control");
+      // Generate service-specific UUIDs
+      const serviceUUID = this.generateServiceUUID(appId, "main");
+      const characteristicUUID = this.generateServiceUUID(appId, "data");
+      const notificationUUID = this.generateServiceUUID(appId, "notify");
+      const controlUUID = this.generateServiceUUID(appId, "control");
 
-    return {
-      serviceUUID,
-      characteristicUUID,
-      notificationUUID,
-      controlUUID,
-      generatedAt: Date.now(),
-      appId,
-    };
+      return {
+        serviceUUID,
+        characteristicUUID,
+        notificationUUID,
+        controlUUID,
+        generatedAt: Date.now(),
+        appId,
+      };
+    } catch (error) {
+      console.warn("generateUUIDConfig failed, using simple fallback:", error);
+      // Simple synchronous fallback
+      return this.generateSimpleUUIDs();
+    }
   }
 
   /**
@@ -142,17 +179,25 @@ export class UUIDService {
    * @returns Application ID
    */
   private async generateAppId(): Promise<string> {
-    // Use a combination of timestamp and random values
-    const timestamp = Date.now().toString(36);
-    const random = Math.random().toString(36).substring(2, 8);
-    const browserInfo = this.getBrowserFingerprint();
+    try {
+      // Use a combination of timestamp and random values
+      const timestamp = Date.now().toString(36);
+      const random = Math.random().toString(36).substring(2, 8);
+      const browserInfo = this.getBrowserFingerprint();
 
-    // Create a hash of the combined values
-    const combined = `${this.APP_NAMESPACE}-${timestamp}-${random}-${browserInfo}`;
-    const hash = await this.hashString(combined);
+      // Create a hash of the combined values
+      const combined = `${this.APP_NAMESPACE}-${timestamp}-${random}-${browserInfo}`;
+      const hash = await this.hashString(combined);
 
-    // Return first 8 characters of hash
-    return hash.substring(0, 8);
+      // Return first 8 characters of hash
+      return hash.substring(0, 8);
+    } catch (error) {
+      console.warn("generateAppId failed, using simple fallback:", error);
+      // Simple fallback without async operations
+      const timestamp = Date.now().toString(36);
+      const random = Math.random().toString(36).substring(2, 8);
+      return `${timestamp}${random}`.substring(0, 8);
+    }
   }
 
   /**
@@ -196,11 +241,23 @@ export class UUIDService {
    */
   private async hashString(str: string): Promise<string> {
     if (crypto.subtle) {
-      const encoder = new TextEncoder();
-      const data = encoder.encode(str);
-      const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+      try {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(str);
+
+        // Add timeout to prevent hanging
+        const hashPromise = crypto.subtle.digest("SHA-256", data);
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error("Hash operation timed out")), 5000);
+        });
+
+        const hashBuffer = await Promise.race([hashPromise, timeoutPromise]);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+      } catch (error) {
+        console.warn("crypto.subtle failed, using fallback hash:", error);
+        return this.simpleHash(str);
+      }
     } else {
       // Fallback to simple hash
       return this.simpleHash(str);
@@ -220,6 +277,25 @@ export class UUIDService {
       hash = hash & hash; // Convert to 32-bit integer
     }
     return Math.abs(hash).toString(16).padStart(8, "0");
+  }
+
+  /**
+   * Generate simple UUIDs synchronously
+   * @returns Simple UUID configuration
+   */
+  private generateSimpleUUIDs(): UUIDConfig {
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substring(2, 8);
+    const appId = `${timestamp}${random}`.substring(0, 8);
+
+    return {
+      serviceUUID: this.generateServiceUUID(appId, "main"),
+      characteristicUUID: this.generateServiceUUID(appId, "data"),
+      notificationUUID: this.generateServiceUUID(appId, "notify"),
+      controlUUID: this.generateServiceUUID(appId, "control"),
+      generatedAt: Date.now(),
+      appId,
+    };
   }
 
   /**
