@@ -3,15 +3,15 @@ import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/stores/app-store";
 import { ConnectionStatus } from "./connection-status";
 import { ThemeToggle } from "./theme-toggle";
+import { SearchBox } from "./search-box";
 
 export function Header() {
   const { toggleSidebar, setScanning } = useAppStore();
 
   const handleStartScanning = () => {
-    const bluetoothService = (window as any).bluetoothService;
-    if (bluetoothService) {
+    if (window.bluetoothService) {
       setScanning(true);
-      bluetoothService.startScanning().finally(() => {
+      window.bluetoothService.startScanning().finally(() => {
         setScanning(false);
       });
     }
@@ -29,7 +29,7 @@ export function Header() {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <h1 className="text-xl font-semibold">BluChat</h1>
+          <SearchBox />
         </div>
 
         <div className="flex items-center gap-4">
