@@ -287,8 +287,8 @@ export class BluetoothService extends EventEmitter {
       const serviceUUID = this.uuidService.getServiceUUID();
       const characteristicUUID = this.uuidService.getCharacteristicUUID();
 
-      let service: BluetoothRemoteGATTService;
-      let characteristic: BluetoothRemoteGATTCharacteristic;
+      let service: BluetoothRemoteGATTService | undefined;
+      let characteristic: BluetoothRemoteGATTCharacteristic | undefined;
 
       try {
         // Try custom service first
@@ -330,11 +330,15 @@ export class BluetoothService extends EventEmitter {
         }
       }
 
+      if (!service || !characteristic) {
+        throw new Error("No compatible service or characteristic found");
+      }
+
       const connection: BluetoothConnection = {
         device,
         server,
-        service: service!,
-        characteristic: characteristic!,
+        service,
+        characteristic,
         rssi: -50,
       };
 
