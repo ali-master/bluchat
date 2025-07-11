@@ -111,74 +111,103 @@ pnpm build
 
 - [x] **Messaging System**
   - [x] Real-time peer-to-peer messaging
-  - [x] Multi-channel support
+  - [x] Multi-channel support with hashtag naming
   - [x] Message persistence with IndexedDB
-  - [x] Message routing with TTL (Time-To-Live)
+  - [x] TTL-based message routing and auto-relay
+  - [x] Message fragmentation for large content
+  - [x] LZ4 compression optimization
 
-- [x] **Security**
+- [x] **Security & Cryptography**
+  - [x] X25519 key exchange protocol
+  - [x] Ed25519 digital signatures
   - [x] End-to-end encryption with TweetNaCl
-  - [x] Key derivation with Scrypt
+  - [x] Scrypt-based key derivation for channels
+  - [x] Perfect Forward Secrecy implementation
   - [x] Message signing and verification
-  - [x] Channel password protection
+
+- [x] **Bluetooth Mesh Networking**
+  - [x] Dual central/peripheral mode support
+  - [x] Mesh topology with routing tables
+  - [x] Multi-hop message forwarding
+  - [x] Duplicate prevention with message ID tracking
+  - [x] Network discovery and peer announcements
+
+- [x] **Privacy Features**
+  - [x] Ephemeral identity rotation (2-hour cycles)
+  - [x] Cover traffic generation
+  - [x] Timing randomization
+  - [x] Message padding for uniform sizes
+  - [x] Anonymity set management
+
+- [x] **Channel Management**
+  - [x] State machine (Discovery → Join → Auth → Active)
+  - [x] Hashtag-based channel naming (#channelname)
+  - [x] Owner privileges and access control
+  - [x] Password-protected private channels
+  - [x] Automatic channel discovery
 
 - [x] **User Interface**
   - [x] Modern responsive design
   - [x] shadcn/ui component library
-  - [x] Dark/light theme support
+  - [x] Dark/light theme toggle with persistence
   - [x] Mobile-optimized interface
-  - [x] Connection status indicators
+  - [x] Real-time connection status indicators
+  - [x] Confirm dialogs replacing browser prompts
+
+- [x] **Protocol & Performance**
+  - [x] Optimized binary packet structure (32-byte header)
+  - [x] Efficient message encoding with relative timestamps
+  - [x] Smart compression (only when beneficial)
+  - [x] Battery-aware operation patterns
 
 - [x] **Developer Experience**
   - [x] TypeScript strict mode
   - [x] ESLint + Prettier configuration
-  - [x] Vite build system
-  - [x] Hot module replacement
+  - [x] Vite build system with HMR
+  - [x] Modular service architecture
 
 ### 🔄 In Progress
 
-- [ ] **Enhanced Security**
-  - [ ] Perfect Forward Secrecy implementation
-  - [ ] Key rotation mechanisms
-  - [ ] Secure peer authentication
-
-- [ ] **Performance Optimization**
-  - [ ] Message compression
-  - [ ] Efficient routing algorithms
-  - [ ] Battery optimization
+- [ ] **Web Platform Enhancements**
+  - [ ] Complete message fragment reassembly logic
+  - [ ] Advanced background scanning optimization
+  - [ ] Service Worker mesh coordination
+  - [ ] WebRTC fallback for connectivity
 
 ### 🚀 Upcoming Features
 
 - [ ] **Advanced Messaging**
-  - [ ] File sharing support
-  - [ ] Voice messages
-  - [ ] Message reactions and replies
-  - [ ] Message search functionality
-  - [ ] Message backup/export
+  - [ ] File sharing with automatic fragmentation
+  - [ ] Voice message recording and playback
+  - [ ] Message reactions and threaded replies
+  - [ ] Full-text message search
+  - [ ] Message backup/export with encryption
 
 - [ ] **Network Features**
-  - [ ] Wi-Fi Direct support
-  - [ ] Hybrid mesh networking (Bluetooth + Wi-Fi)
-  - [ ] Bridge mode (connect multiple mesh networks)
-  - [ ] Network topology visualization
+  - [ ] Wi-Fi Direct integration for higher bandwidth
+  - [ ] Hybrid mesh (Bluetooth + Wi-Fi + WebRTC)
+  - [ ] Bridge mode for connecting separate mesh networks
+  - [ ] Real-time network topology visualization
+  - [ ] Mesh health monitoring and diagnostics
 
 - [ ] **User Experience**
-  - [ ] User profiles and avatars
-  - [ ] Message notifications
-  - [ ] Typing indicators
-  - [ ] Message read receipts
-  - [ ] Contact management
+  - [ ] Customizable user profiles with avatars
+  - [ ] Smart notifications with privacy preservation
+  - [ ] Typing indicators with timing obfuscation
+  - [ ] Read receipts with optional anonymity
+  - [ ] Advanced contact and peer management
 
-- [ ] **Developer Features**
-  - [ ] Plugin system
-  - [ ] API for third-party integrations
-  - [ ] Custom encryption protocols
-  - [ ] Network diagnostics tools
+- [ ] **Native Applications**
+  - [ ] Electron desktop app with full BLE support
+  - [ ] React Native mobile app for true mesh networking
+  - [ ] Browser extension for web integration
+  - [ ] Command-line interface for server deployments
 
-- [ ] **Platform Support**
-  - [ ] Electron desktop app
-  - [ ] React Native mobile app
-  - [ ] Browser extension
-  - [ ] Command-line interface
+- [ ] **Developer Platform**
+  - [ ] Plugin system for custom features
+  - [ ] REST API for third-party integrations
+  - [ ] Custom encryption protocol support
+  - [ ] Comprehensive network diagnostics toolkit
 
 ### 🎯 Long-term Vision
 
@@ -213,6 +242,17 @@ pnpm build
 | Opera | ✅ | ✅ | Full support |
 | Safari | ❌ | ❌ | No Web Bluetooth support |
 | Firefox | ❌ | ❌ | No Web Bluetooth support |
+
+## ⚠️ Web Platform Limitations
+
+While BluChat implements the full BitChat protocol specification, the web platform has inherent constraints:
+
+- **🚫 True BLE Advertising**: Web Bluetooth API doesn't support peripheral mode - limits mesh networking capabilities
+- **⏱️ Background Scanning**: Browser security policies restrict continuous background scanning 
+- **🧩 Fragment Reassembly**: Basic framework implemented, full message reassembly logic needs completion
+- **⚡ Native Performance**: Web implementation has overhead compared to native BLE stack
+
+**💡 For Production Use**: Consider native mobile/desktop implementations for optimal mesh networking performance.
 
 ## 🔒 Security
 
