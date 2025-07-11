@@ -3,6 +3,9 @@ import { cn } from "@/lib/utils";
 import { ChannelList } from "./channel-list";
 import { PeerList } from "./peer-list";
 import { NetworkStatus } from "./network-status";
+import { OptimizationStatus } from "./optimization-status";
+import { UUIDDisplay } from "./uuid-display";
+import { ScrollArea } from "./ui/scroll-area";
 import { useEffect } from "react";
 
 export function Sidebar() {
@@ -50,7 +53,7 @@ export function Sidebar() {
       <aside
         data-sidebar
         className={cn(
-          "fixed left-0 top-0 z-50 h-full w-64 bg-card border-r transition-transform duration-300",
+          "fixed left-0 top-0 z-50 h-full w-96 bg-card border-r transition-transform duration-300",
           isSidebarOpen ? "translate-x-0" : "-translate-x-full",
           "md:relative md:translate-x-0 md:z-auto",
         )}
@@ -63,11 +66,15 @@ export function Sidebar() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            <NetworkStatus />
-            <ChannelList />
-            <PeerList />
-          </div>
+          <ScrollArea className="flex-1 p-4">
+            <div className="space-y-4">
+              <NetworkStatus />
+              <OptimizationStatus />
+              <UUIDDisplay />
+              <ChannelList />
+              <PeerList />
+            </div>
+          </ScrollArea>
         </div>
       </aside>
     </>

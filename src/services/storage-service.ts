@@ -34,43 +34,97 @@ interface BluchatDB extends DBSchema {
       createdAt: number;
     };
   };
+  storage: {
+    key: string;
+    value: {
+      key: string;
+      data: any;
+      createdAt: number;
+    };
+  };
 }
 
 const DB_NAME = "bluchat";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export class StorageService {
   private db: IDBPDatabase<BluchatDB> | null = null;
 
-  async init() {
-    this.db = await openDB<BluchatDB>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        if (!db.objectStoreNames.contains("messages")) {
-          const messageStore = db.createObjectStore("messages", {
-            keyPath: "id",
-          });
-          messageStore.createIndex("channel", "channel");
-          messageStore.createIndex("timestamp", "timestamp");
-          messageStore.createIndex("sender", "sender");
-        }
+  /**
+   * Force database reset for development/migration purposes
+   */
+  async resetDatabase() {
+    if (this.db) {
+      this.db.close();
+      this.db = null;
+    }
 
-        if (!db.objectStoreNames.contains("channels")) {
-          const channelStore = db.createObjectStore("channels", {
-            keyPath: "name",
-          });
-          channelStore.createIndex("lastActivity", "lastActivity");
-        }
+    // Delete the database
+    const deleteRequest = indexedDB.deleteDatabase(DB_NAME);
 
-        if (!db.objectStoreNames.contains("peers")) {
-          const peerStore = db.createObjectStore("peers", { keyPath: "id" });
-          peerStore.createIndex("lastSeen", "lastSeen");
-        }
-
-        if (!db.objectStoreNames.contains("keys")) {
-          db.createObjectStore("keys", { keyPath: "type" });
-        }
-      },
+    return new Promise<void>((resolve, reject) => {
+      deleteRequest.onerror = () => reject(deleteRequest.error);
+      deleteRequest.onsuccess = () => resolve();
+      deleteRequest.onblocked = () => {
+        console.warn("Database deletion blocked. Please close other tabs.");
+        resolve(); // Continue anyway
+      };
     });
+  }
+
+  async init() {
+    try {
+      console.log("Initializing storage service...");
+      this.db = await openDB<BluchatDB>(DB_NAME, DB_VERSION, {
+        upgrade(db, oldVersion, newVersion) {
+          console.log(`Database upgrade: ${oldVersion} -> ${newVersion}`);
+
+          // Handle version 1 to 2 migration
+          if (oldVersion < 1) {
+            console.log("Creating initial object stores...");
+            // Create initial stores
+            if (!db.objectStoreNames.contains("messages")) {
+              const messageStore = db.createObjectStore("messages", {
+                keyPath: "id",
+              });
+              messageStore.createIndex("channel", "channel");
+              messageStore.createIndex("timestamp", "timestamp");
+              messageStore.createIndex("sender", "sender");
+            }
+
+            if (!db.objectStoreNames.contains("channels")) {
+              const channelStore = db.createObjectStore("channels", {
+                keyPath: "name",
+              });
+              channelStore.createIndex("lastActivity", "lastActivity");
+            }
+
+            if (!db.objectStoreNames.contains("peers")) {
+              const peerStore = db.createObjectStore("peers", {
+                keyPath: "id",
+              });
+              peerStore.createIndex("lastSeen", "lastSeen");
+            }
+
+            if (!db.objectStoreNames.contains("keys")) {
+              db.createObjectStore("keys", { keyPath: "type" });
+            }
+          }
+
+          // Add storage object store in version 2
+          if (oldVersion < 2) {
+            console.log("Adding storage object store...");
+            if (!db.objectStoreNames.contains("storage")) {
+              db.createObjectStore("storage", { keyPath: "key" });
+            }
+          }
+        },
+      });
+      console.log("Storage service initialized successfully");
+    } catch (error) {
+      console.error("Failed to initialize storage service:", error);
+      throw error;
+    }
   }
 
   async saveMessage(message: Message) {
@@ -181,10 +235,48 @@ export class StorageService {
     return result?.key;
   }
 
+  async setItem(key: string, value: any) {
+    if (!this.db) throw new Error("Database not initialized");
+
+    try {
+      const tx = this.db.transaction("storage", "readwrite");
+      await tx.objectStore("storage").put({
+        key,
+        data: value,
+        createdAt: Date.now(),
+      });
+      await tx.done;
+      console.log(`Successfully stored item with key: ${key}`);
+    } catch (error) {
+      console.error(`Failed to store item with key ${key}:`, error);
+      throw error;
+    }
+  }
+
+  async getItem(key: string): Promise<any> {
+    if (!this.db) throw new Error("Database not initialized");
+
+    try {
+      const tx = this.db.transaction("storage", "readonly");
+      const result = await tx.objectStore("storage").get(key);
+      console.log(`Retrieved item with key ${key}:`, result?.data);
+      return result?.data;
+    } catch (error) {
+      console.error(`Failed to retrieve item with key ${key}:`, error);
+      throw error;
+    }
+  }
+
   async clearAll() {
     if (!this.db) throw new Error("Database not initialized");
 
-    const stores = ["messages", "channels", "peers", "keys"] as const;
+    const stores = [
+      "messages",
+      "channels",
+      "peers",
+      "keys",
+      "storage",
+    ] as const;
     const tx = this.db.transaction(stores, "readwrite");
 
     for (const store of stores) {

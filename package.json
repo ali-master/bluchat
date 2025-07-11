@@ -24,8 +24,8 @@
     "test:types": "tsc --noEmit",
     "test:knip": "knip",
     "test:knip:fix": "knip --fix",
-    "format:check": "prettier --check \"**/*.{ts,tsx,mdx}\"",
-    "format": "prettier --write \"**/*.{ts,tsx,mdx}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,mdx,js}\"",
+    "format": "prettier --write \"**/*.{ts,tsx,mdx,js}\"",
     "lint": "eslint \"src/**/*.{ts,tsx,js}\"",
     "lint:fix": "pnpm run lint --fix"
   },

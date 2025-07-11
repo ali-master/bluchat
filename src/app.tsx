@@ -15,6 +15,13 @@ const bluetoothService = new BluetoothService();
 const storageService = new StorageService();
 const cryptoService = new CryptoService();
 
+// Make services available globally immediately
+if (typeof window !== "undefined") {
+  window.bluetoothService = bluetoothService;
+  window.storageService = storageService;
+  window.cryptoService = cryptoService;
+}
+
 export function App() {
   const { addMessage, addPeer, removePeer, theme } = useAppStore();
   const { confirm, ConfirmDialog } = useConfirm();
@@ -116,13 +123,6 @@ export function App() {
       bluetoothService.removeAllListeners();
     };
   }, [addMessage, addPeer, removePeer, confirm]);
-
-  // Make services available globally for components
-  if (typeof window !== "undefined") {
-    window.bluetoothService = bluetoothService;
-    window.storageService = storageService;
-    window.cryptoService = cryptoService;
-  }
 
   return (
     <div className="flex h-screen bg-background">

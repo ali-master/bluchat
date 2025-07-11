@@ -18,7 +18,7 @@ export function Header() {
   };
 
   return (
-    <header className="border-b bg-card p-4">
+    <header className="border-b bg-card p-3 shadow-2xl">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button
