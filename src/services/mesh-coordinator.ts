@@ -1,8 +1,9 @@
 import { EventEmitter } from "@/utils/event-emitter";
-import {
-  hasPeriodicBackgroundSync,
-  hasBackgroundSync,
-} from "@/types/service-worker";
+// Service worker types - disabled for now
+// import {
+//   hasPeriodicBackgroundSync,
+//   hasBackgroundSync,
+// } from "@/types/service-worker";
 import type { Peer, Message } from "@/types";
 
 /**
@@ -98,10 +99,8 @@ export class MeshCoordinator extends EventEmitter {
       // Initialize broadcast channel for cross-tab communication
       this.initializeBroadcastChannel();
 
-      // Register service worker if supported
-      if ("serviceWorker" in navigator) {
-        await this.registerServiceWorker();
-      }
+      // Skip service worker registration for now due to fetch interference
+      console.log("Service worker registration disabled to prevent fetch conflicts");
 
       // Start coordination processes
       this.startHeartbeat();
@@ -158,10 +157,11 @@ export class MeshCoordinator extends EventEmitter {
     });
   }
 
-  /**
+  /*
    * Register service worker for background mesh coordination
+   * DISABLED: Causes infinite refresh loops
    */
-  private async registerServiceWorker(): Promise<void> {
+  /* private async registerServiceWorker(): Promise<void> {
     try {
       const registration = await navigator.serviceWorker.register(
         "/mesh-worker.js",
@@ -174,12 +174,12 @@ export class MeshCoordinator extends EventEmitter {
       this.serviceWorker =
         registration.active || registration.installing || registration.waiting;
 
-      // Listen for messages from service worker
-      navigator.serviceWorker.addEventListener("message", (event) => {
-        if (event.data.type === "mesh-coordination") {
-          this.handleServiceWorkerMessage(event.data);
-        }
-      });
+      // Service worker message handling disabled
+      // navigator.serviceWorker.addEventListener("message", (event) => {
+      //   if (event.data.type === "mesh-coordination") {
+      //     this.handleServiceWorkerMessage(event.data);
+      //   }
+      // });
 
       // Register for background sync only when worker is active
       if (
@@ -214,7 +214,7 @@ export class MeshCoordinator extends EventEmitter {
     } catch (error) {
       console.error("Service worker registration failed:", error);
     }
-  }
+  } */
 
   /**
    * Start heartbeat broadcasting
@@ -406,11 +406,11 @@ export class MeshCoordinator extends EventEmitter {
     this.emit("mesh-synchronized", payload);
   }
 
-  /**
-   * Handle message from service worker
+  /*
+   * Handle message from service worker - DISABLED
    * @param data - Service worker message data
    */
-  private handleServiceWorkerMessage(data: any): void {
+  /* private handleServiceWorkerMessage(data: any): void {
     switch (data.action) {
       case "mesh-update":
         this.emit("service-worker-update", data.payload);
@@ -428,13 +428,13 @@ export class MeshCoordinator extends EventEmitter {
         this.handleNetworkPartition(data.payload);
         break;
     }
-  }
+  } */
 
-  /**
-   * Handle mesh health alert from service worker
+  /*
+   * Handle mesh health alert from service worker - DISABLED
    * @param payload - Health alert data
    */
-  private handleMeshHealthAlert(payload: any): void {
+  /* private handleMeshHealthAlert(payload: any): void {
     console.warn("Mesh health alert:", payload);
     this.emit("mesh-health-alert", payload);
 
@@ -454,22 +454,22 @@ export class MeshCoordinator extends EventEmitter {
         }
       });
     }
-  }
+  } */
 
-  /**
-   * Handle route optimization suggestions
+  /*
+   * Handle route optimization suggestions - DISABLED
    * @param payload - Route optimization data
    */
-  private handleRouteOptimization(payload: any): void {
+  /* private handleRouteOptimization(payload: any): void {
     console.log("Route optimization suggestion:", payload);
     this.emit("route-optimization", payload);
-  }
+  } */
 
-  /**
-   * Handle network partition detection
+  /*
+   * Handle network partition detection - DISABLED
    * @param payload - Partition data
    */
-  private handleNetworkPartition(payload: any): void {
+  /* private handleNetworkPartition(payload: any): void {
     console.warn("Network partition detected:", payload);
     this.emit("network-partition", payload);
 
@@ -485,27 +485,27 @@ export class MeshCoordinator extends EventEmitter {
       timestamp: Date.now(),
       version: this.CONFIG.PROTOCOL_VERSION,
     });
-  }
+  } */
 
-  /**
-   * Handle stale nodes by removing them from topology
+  /*
+   * Handle stale nodes by removing them from topology - DISABLED
    * @param staleNodeIds - IDs of stale nodes
    */
-  private handleStaleNodes(staleNodeIds: string[]): void {
+  /* private handleStaleNodes(staleNodeIds: string[]): void {
     staleNodeIds.forEach((nodeId) => {
       this.nodes.delete(nodeId);
       this.emit("node-removed", nodeId);
     });
-  }
+  } */
 
-  /**
-   * Handle isolated nodes by attempting reconnection
+  /*
+   * Handle isolated nodes by attempting reconnection - DISABLED
    * @param isolatedNodeIds - IDs of isolated nodes
    */
-  private handleIsolatedNodes(isolatedNodeIds: string[]): void {
+  /* private handleIsolatedNodes(isolatedNodeIds: string[]): void {
     // In a real implementation, this would trigger connection attempts
     this.emit("nodes-isolated", isolatedNodeIds);
-  }
+  } */
 
   /**
    * Register a new node in the mesh
@@ -729,49 +729,27 @@ export class MeshCoordinator extends EventEmitter {
 
   /**
    * Start background scanning through service worker
+   * DISABLED: Service worker disabled
    */
   startBackgroundScanning(): void {
-    if (this.serviceWorker) {
-      this.serviceWorker.postMessage({
-        type: "start-background-scan",
-      });
-    }
+    console.log("Background scanning disabled (service worker disabled)");
   }
 
   /**
    * Stop background scanning
+   * DISABLED: Service worker disabled
    */
   stopBackgroundScanning(): void {
-    if (this.serviceWorker) {
-      this.serviceWorker.postMessage({
-        type: "stop-background-scan",
-      });
-    }
+    console.log("Background scanning disabled (service worker disabled)");
   }
 
   /**
    * Get mesh state from service worker
+   * DISABLED: Service worker disabled
    */
   async getMeshStateFromServiceWorker(): Promise<any> {
-    return new Promise((resolve, reject) => {
-      if (!this.serviceWorker) {
-        reject(new Error("Service worker not available"));
-        return;
-      }
-
-      const messageChannel = new MessageChannel();
-      messageChannel.port1.onmessage = (event) => {
-        if (event.data.type === "mesh-state") {
-          resolve(event.data.state);
-        } else {
-          reject(new Error("Unexpected response type"));
-        }
-      };
-
-      this.serviceWorker.postMessage({ type: "get-mesh-state" }, [
-        messageChannel.port2,
-      ]);
-    });
+    console.log("Mesh state disabled (service worker disabled)");
+    return null;
   }
 
   /**
