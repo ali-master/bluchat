@@ -23,8 +23,7 @@ if (typeof window !== "undefined") {
 }
 
 export function App() {
-  const { addMessage, addPeer, removePeer, theme, setServicesInitialized } =
-    useAppStore();
+  const { theme } = useAppStore();
   const { confirm, ConfirmDialog } = useConfirm();
 
   useEffect(() => {
@@ -53,11 +52,11 @@ export function App() {
         console.log("✓ Bluetooth service initializing...");
 
         // Load stored messages
-        const channels = useAppStore.getState().channels;
+        const { channels, addMessage: addMsg } = useAppStore.getState();
         for (const channel of channels) {
           const messages = await storageService.getMessages(channel.name);
           messages.forEach((msg) => {
-            addMessage({
+            addMsg({
               ...msg,
               isMine: msg.sender === cryptoService.getPublicKey(),
               status: "stored",
@@ -66,10 +65,10 @@ export function App() {
         }
 
         console.log("✓ All services initialized successfully");
-        setServicesInitialized(true);
+        useAppStore.getState().setServicesInitialized(true);
       } catch (error) {
         console.error("Failed to initialize services:", error);
-        setServicesInitialized(false);
+        useAppStore.getState().setServicesInitialized(false);
         // You might want to show a toast or error message to the user
       }
     };
@@ -78,11 +77,11 @@ export function App() {
 
     // Set up Bluetooth event listeners
     bluetoothService.on("peer-connected", (peer) => {
-      addPeer(peer);
+      useAppStore.getState().addPeer(peer);
     });
 
     bluetoothService.on("peer-disconnected", (peerId) => {
-      removePeer(peerId);
+      useAppStore.getState().removePeer(peerId);
     });
 
     // Listen for discovery scan events
@@ -136,13 +135,13 @@ export function App() {
       };
 
       await storageService.saveMessage(message);
-      addMessage(displayMessage);
+      useAppStore.getState().addMessage(displayMessage);
     });
 
     return () => {
       bluetoothService.removeAllListeners();
     };
-  }, [addMessage, addPeer, removePeer, confirm]);
+  }, []); // Empty dependency array - initialization should only happen once
 
   return (
     <div className="flex h-screen bg-background">
