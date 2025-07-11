@@ -58,6 +58,19 @@ export function App() {
       removePeer(peerId);
     });
 
+    // Listen for discovery scan events
+    bluetoothService.on("discovery-scan", (data) => {
+      console.log("Discovery scan performed:", data);
+    });
+
+    // Listen for advertising events
+    bluetoothService.on("advertising", (data) => {
+      console.log("Advertising:", data);
+    });
+
+    // Start advertising automatically
+    bluetoothService.startAdvertising().catch(console.error);
+
     bluetoothService.on("message-received", async (message) => {
       // Handle incoming message
       const { markMessageAsProcessed, processedMessageIds } =
@@ -97,14 +110,6 @@ export function App() {
 
       await storageService.saveMessage(message);
       addMessage(displayMessage);
-
-      // Relay message if TTL > 1
-      if (message.ttl > 1) {
-        await bluetoothService.relayMessage({
-          ...message,
-          ttl: message.ttl - 1,
-        });
-      }
     });
 
     return () => {
@@ -114,15 +119,15 @@ export function App() {
 
   // Make services available globally for components
   if (typeof window !== "undefined") {
-    (window as any).bluetoothService = bluetoothService;
-    (window as any).storageService = storageService;
-    (window as any).cryptoService = cryptoService;
+    window.bluetoothService = bluetoothService;
+    window.storageService = storageService;
+    window.cryptoService = cryptoService;
   }
 
   return (
     <div className="flex h-screen bg-background">
       <Sidebar />
-      <div className={"flex-1 flex flex-col transition-all duration-300 ml-0"}>
+      <div className="flex-1 flex flex-col min-w-0">
         <Header />
         <ChatArea />
       </div>

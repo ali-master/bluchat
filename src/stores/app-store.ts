@@ -2,6 +2,8 @@ import { create } from "zustand";
 import { persist, devtools } from "zustand/middleware";
 import type { Peer, Message, EncryptedData, Channel } from "@/types";
 import { CryptoService } from "@/services/crypto-service";
+import { ChannelService } from "@/services/channel-service";
+import { PrivacyService } from "@/services/privacy-service";
 
 interface AppState {
   // Connection state
@@ -20,9 +22,13 @@ interface AppState {
   // UI state
   isSidebarOpen: boolean;
   theme: "light" | "dark";
+  searchQuery: string;
+  searchResults: Message[];
 
-  // Crypto state
+  // Services
   cryptoService: CryptoService;
+  channelService: ChannelService;
+  privacyService: PrivacyService;
   publicKey: string | null;
 
   // Actions
@@ -31,6 +37,12 @@ interface AppState {
   removePeer: (peerId: string) => void;
   updatePeerRssi: (peerId: string, rssi: number) => void;
 
+  // Bluetooth service actions
+  startAdvertising: () => Promise<void>;
+  stopAdvertising: () => void;
+  getMeshTopology: () => any;
+  disconnectBluetooth: () => void;
+
   addMessage: (message: Message) => void;
   updateMessageStatus: (messageId: string, status: Message["status"]) => void;
   markMessageAsProcessed: (messageId: string) => void;
@@ -38,10 +50,31 @@ interface AppState {
   setCurrentChannel: (channel: string) => void;
   addChannel: (channel: Channel) => void;
   removeChannel: (channelName: string) => void;
+  joinChannelWithState: (
+    channelName: string,
+    password?: string,
+  ) => Promise<void>;
+  leaveChannelWithState: (channelName: string) => Promise<void>;
+
+  // Channel service actions
+  discoverChannel: (channelName: string) => Promise<void>;
+  getChannelState: (channelName: string) => any;
+  getActiveChannels: () => any[];
+  getAllChannels: () => any[];
+  startChannelDiscovery: () => void;
+  stopChannelDiscovery: () => void;
+  updateChannelActivity: (channelName: string) => void;
+  hasOwnerPrivileges: (channelName: string, userId: string) => boolean;
+  setChannelOwner: (channelName: string, userId: string) => void;
 
   toggleSidebar: () => void;
   setTheme: (theme: "light" | "dark") => void;
   toggleTheme: () => void;
+
+  // Search actions
+  setSearchQuery: (query: string) => void;
+  searchMessages: (query: string) => void;
+  clearSearch: () => void;
 
   // Crypto actions
   initializeCrypto: () => Promise<void>;
@@ -78,7 +111,11 @@ export const useAppStore = create<AppState>()(
         channels: [{ name: "public", password: null, createdAt: Date.now() }],
         isSidebarOpen: true,
         theme: "dark",
+        searchQuery: "",
+        searchResults: [],
         cryptoService: new CryptoService(),
+        channelService: new ChannelService(),
+        privacyService: new PrivacyService(),
         publicKey: null,
 
         // Connection actions
@@ -159,6 +196,28 @@ export const useAppStore = create<AppState>()(
                 : state.currentChannel,
           })),
 
+        joinChannelWithState: async (channelName, password) => {
+          const { channelService } = get();
+          try {
+            await channelService.joinChannel(channelName, password);
+            // Channel will be added via event listener
+          } catch (error) {
+            console.error("Failed to join channel:", error);
+            throw error;
+          }
+        },
+
+        leaveChannelWithState: async (channelName) => {
+          const { channelService } = get();
+          try {
+            await channelService.leaveChannel(channelName);
+            // Channel will be removed via event listener
+          } catch (error) {
+            console.error("Failed to leave channel:", error);
+            throw error;
+          }
+        },
+
         // UI actions
         toggleSidebar: () =>
           set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
@@ -173,10 +232,30 @@ export const useAppStore = create<AppState>()(
           get().setTheme(newTheme);
         },
 
-        // Crypto actions
+        // Search actions
+        setSearchQuery: (query) => set({ searchQuery: query }),
+
+        searchMessages: (query) => {
+          if (!query.trim()) {
+            set({ searchResults: [] });
+            return;
+          }
+
+          const { messages } = get();
+          const results = messages.filter((message) =>
+            message.text?.toLowerCase().includes(query.toLowerCase()),
+          );
+
+          set({ searchResults: results, searchQuery: query });
+        },
+
+        clearSearch: () => set({ searchQuery: "", searchResults: [] }),
+
+        // Service initialization
         initializeCrypto: async () => {
-          const { cryptoService } = get();
+          const { cryptoService, privacyService } = get();
           await cryptoService.init();
+          await privacyService.init();
           set({ publicKey: cryptoService.getPublicKey() });
         },
 
@@ -202,8 +281,9 @@ export const useAppStore = create<AppState>()(
           const channel = channels.find((ch) => ch.name === currentChannel);
 
           if (sender) {
-            // Decrypt from specific peer
-            return await cryptoService.decryptFromPeer(encryptedData);
+            // Decrypt from specific peer - need peer's box public key
+            // For now, using sender as the box public key (this would need proper peer management)
+            return await cryptoService.decryptFromPeer(encryptedData, sender);
           } else {
             // Decrypt from channel
             return await cryptoService.decryptFromChannel(
@@ -237,6 +317,83 @@ export const useAppStore = create<AppState>()(
           const { cryptoService } = get();
           await cryptoService.wipeKeys();
           set({ publicKey: cryptoService.getPublicKey() });
+        },
+
+        // Bluetooth service actions
+        startAdvertising: async () => {
+          if (window.bluetoothService) {
+            await window.bluetoothService.startAdvertising();
+          }
+        },
+
+        stopAdvertising: () => {
+          if (window.bluetoothService) {
+            window.bluetoothService.stopAdvertising();
+          }
+        },
+
+        getMeshTopology: () => {
+          if (window.bluetoothService) {
+            return window.bluetoothService.getMeshTopology();
+          }
+          return { connectedPeers: [], routingTable: {}, totalConnections: 0 };
+        },
+
+        disconnectBluetooth: () => {
+          if (window.bluetoothService) {
+            window.bluetoothService.disconnect();
+          }
+          set({
+            peers: new Map(),
+            connectionStatus: "disconnected",
+            isScanning: false,
+          });
+        },
+
+        // Channel service actions
+        discoverChannel: async (channelName) => {
+          const { channelService } = get();
+          await channelService.discoverChannel(channelName);
+        },
+
+        getChannelState: (channelName) => {
+          const { channelService } = get();
+          return channelService.getChannelState(channelName);
+        },
+
+        getActiveChannels: () => {
+          const { channelService } = get();
+          return channelService.getActiveChannels();
+        },
+
+        getAllChannels: () => {
+          const { channelService } = get();
+          return channelService.getAllChannels();
+        },
+
+        startChannelDiscovery: () => {
+          const { channelService } = get();
+          channelService.startChannelDiscovery();
+        },
+
+        stopChannelDiscovery: () => {
+          const { channelService } = get();
+          channelService.stopChannelDiscovery();
+        },
+
+        updateChannelActivity: (channelName) => {
+          const { channelService } = get();
+          channelService.updateChannelActivity(channelName);
+        },
+
+        hasOwnerPrivileges: (channelName, userId) => {
+          const { channelService } = get();
+          return channelService.hasOwnerPrivileges(channelName, userId);
+        },
+
+        setChannelOwner: (channelName, userId) => {
+          const { channelService } = get();
+          channelService.setChannelOwner(channelName, userId);
         },
 
         // Getters

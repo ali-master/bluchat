@@ -3,8 +3,10 @@ import scrypt from "scrypt-js";
 import type { EncryptedData } from "@/types";
 
 export class CryptoService {
-  private keyPair: nacl.SignKeyPair | null = null;
+  private signKeyPair: nacl.SignKeyPair | null = null;
+  private boxKeyPair: nacl.BoxKeyPair | null = null;
   private channelKeys = new Map<string, Uint8Array>();
+  private peerKeys = new Map<string, Uint8Array>(); // Shared keys with peers
 
   private encodeBase64(data: Uint8Array): string {
     return btoa(String.fromCharCode(...data));
@@ -27,63 +29,104 @@ export class CryptoService {
   }
 
   async init() {
-    const storedPrivateKey = localStorage.getItem("bluchat_private_key");
-
-    if (storedPrivateKey) {
-      const privateKey = this.decodeBase64(storedPrivateKey);
-      this.keyPair = nacl.sign.keyPair.fromSecretKey(privateKey);
+    // Initialize signing key pair
+    const storedSignPrivateKey = localStorage.getItem(
+      "bluchat_sign_private_key",
+    );
+    if (storedSignPrivateKey) {
+      const privateKey = this.decodeBase64(storedSignPrivateKey);
+      this.signKeyPair = nacl.sign.keyPair.fromSecretKey(privateKey);
     } else {
-      this.keyPair = nacl.sign.keyPair();
+      this.signKeyPair = nacl.sign.keyPair();
       localStorage.setItem(
-        "bluchat_private_key",
-        this.encodeBase64(this.keyPair.secretKey),
+        "bluchat_sign_private_key",
+        this.encodeBase64(this.signKeyPair.secretKey),
+      );
+    }
+
+    // Initialize X25519 key pair for key exchange
+    const storedBoxPrivateKey = localStorage.getItem("bluchat_box_private_key");
+    if (storedBoxPrivateKey) {
+      const privateKey = this.decodeBase64(storedBoxPrivateKey);
+      this.boxKeyPair = nacl.box.keyPair.fromSecretKey(privateKey);
+    } else {
+      this.boxKeyPair = nacl.box.keyPair();
+      localStorage.setItem(
+        "bluchat_box_private_key",
+        this.encodeBase64(this.boxKeyPair.secretKey),
       );
     }
   }
 
   getPublicKey(): string {
-    if (!this.keyPair) throw new Error("Crypto service not initialized");
-    return this.encodeBase64(this.keyPair.publicKey);
+    if (!this.signKeyPair) throw new Error("Crypto service not initialized");
+    return this.encodeBase64(this.signKeyPair.publicKey);
+  }
+
+  getBoxPublicKey(): string {
+    if (!this.boxKeyPair) throw new Error("Crypto service not initialized");
+    return this.encodeBase64(this.boxKeyPair.publicKey);
+  }
+
+  // X25519 key exchange - derive shared secret with peer
+  async performKeyExchange(peerBoxPublicKey: string): Promise<string> {
+    if (!this.boxKeyPair) throw new Error("Crypto service not initialized");
+
+    const peerPublicKeyBytes = this.decodeBase64(peerBoxPublicKey);
+    const sharedSecret = nacl.box.before(
+      peerPublicKeyBytes,
+      this.boxKeyPair.secretKey,
+    );
+
+    // Store shared key for this peer
+    this.peerKeys.set(peerBoxPublicKey, sharedSecret);
+
+    return this.encodeBase64(sharedSecret);
   }
 
   async encryptForPeer(
     message: string,
-    peerPublicKey: string,
+    peerBoxPublicKey: string,
   ): Promise<EncryptedData> {
-    const ephemeralKeyPair = nacl.box.keyPair();
+    if (!this.boxKeyPair) throw new Error("Crypto service not initialized");
+
+    // Get or derive shared secret
+    let sharedSecret = this.peerKeys.get(peerBoxPublicKey);
+    if (!sharedSecret) {
+      await this.performKeyExchange(peerBoxPublicKey);
+      sharedSecret = this.peerKeys.get(peerBoxPublicKey)!;
+    }
+
     const nonce = nacl.randomBytes(24);
     const messageBytes = this.encodeUTF8(message);
-    const peerPublicKeyBytes = this.decodeBase64(peerPublicKey);
 
-    const encrypted = nacl.box(
-      messageBytes,
-      nonce,
-      peerPublicKeyBytes,
-      ephemeralKeyPair.secretKey,
-    );
+    // Use the pre-computed shared secret for faster encryption
+    const encrypted = nacl.box.after(messageBytes, nonce, sharedSecret);
 
     return {
-      ephemeralPublicKey: this.encodeBase64(ephemeralKeyPair.publicKey),
       nonce: this.encodeBase64(nonce),
       ciphertext: this.encodeBase64(encrypted),
     };
   }
 
-  async decryptFromPeer(encryptedData: EncryptedData): Promise<string> {
-    if (!this.keyPair) throw new Error("Crypto service not initialized");
+  async decryptFromPeer(
+    encryptedData: EncryptedData,
+    peerBoxPublicKey: string,
+  ): Promise<string> {
+    if (!this.boxKeyPair) throw new Error("Crypto service not initialized");
 
-    const ephemeralPublicKey = this.decodeBase64(
-      encryptedData.ephemeralPublicKey!,
-    );
+    // Get shared secret for this peer
+    let sharedSecret = this.peerKeys.get(peerBoxPublicKey);
+    if (!sharedSecret) {
+      await this.performKeyExchange(peerBoxPublicKey);
+      sharedSecret = this.peerKeys.get(peerBoxPublicKey)!;
+    }
+
     const nonce = this.decodeBase64(encryptedData.nonce);
     const ciphertext = this.decodeBase64(encryptedData.ciphertext);
 
-    const decrypted = nacl.box.open(
-      ciphertext,
-      nonce,
-      ephemeralPublicKey,
-      this.keyPair.secretKey,
-    );
+    // Use the pre-computed shared secret for faster decryption
+    const decrypted = nacl.box.open.after(ciphertext, nonce, sharedSecret);
 
     if (!decrypted) {
       throw new Error("Failed to decrypt message");
@@ -149,10 +192,13 @@ export class CryptoService {
   }
 
   async signMessage(message: any): Promise<string> {
-    if (!this.keyPair) throw new Error("Crypto service not initialized");
+    if (!this.signKeyPair) throw new Error("Crypto service not initialized");
 
     const messageBytes = this.encodeUTF8(JSON.stringify(message));
-    const signature = nacl.sign.detached(messageBytes, this.keyPair.secretKey);
+    const signature = nacl.sign.detached(
+      messageBytes,
+      this.signKeyPair.secretKey,
+    );
     return this.encodeBase64(signature);
   }
 
@@ -177,15 +223,23 @@ export class CryptoService {
   }
 
   async wipeKeys() {
-    this.keyPair = null;
+    this.signKeyPair = null;
+    this.boxKeyPair = null;
     this.channelKeys.clear();
-    localStorage.removeItem("bluchat_private_key");
+    this.peerKeys.clear();
+    localStorage.removeItem("bluchat_sign_private_key");
+    localStorage.removeItem("bluchat_box_private_key");
 
     // Generate new keys
-    this.keyPair = nacl.sign.keyPair();
+    this.signKeyPair = nacl.sign.keyPair();
+    this.boxKeyPair = nacl.box.keyPair();
     localStorage.setItem(
-      "bluchat_private_key",
-      this.encodeBase64(this.keyPair.secretKey),
+      "bluchat_sign_private_key",
+      this.encodeBase64(this.signKeyPair.secretKey),
+    );
+    localStorage.setItem(
+      "bluchat_box_private_key",
+      this.encodeBase64(this.boxKeyPair.secretKey),
     );
   }
 }

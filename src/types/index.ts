@@ -3,6 +3,7 @@ export interface Peer {
   name: string;
   rssi: number;
   lastSeen: number;
+  latency?: number; // Round-trip time in milliseconds
 }
 
 export interface Message {
