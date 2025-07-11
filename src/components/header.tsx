@@ -8,12 +8,21 @@ import { SearchBox } from "./search-box";
 export function Header() {
   const { toggleSidebar, setScanning } = useAppStore();
 
-  const handleStartScanning = () => {
-    if (window.bluetoothService) {
+  const handleStartScanning = async () => {
+    if (!window.bluetoothService) return;
+
+    try {
       setScanning(true);
-      window.bluetoothService.startScanning().finally(() => {
-        setScanning(false);
-      });
+
+      // Start scanning (non-blocking)
+      await window.bluetoothService.startScanning();
+
+      // Then try to connect to a device
+      await window.bluetoothService.connectToNewDevice();
+    } catch (error) {
+      console.error("Scanning/connection error:", error);
+    } finally {
+      setScanning(false);
     }
   };
 

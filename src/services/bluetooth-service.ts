@@ -231,54 +231,11 @@ export class BluetoothService extends EventEmitter {
         }
       }, scanMode.interval);
 
-      // Request device selection from user
-      const serviceUUID = this.uuidService.getServiceUUID();
-
-      try {
-        // Try with custom service first
-        const device = await navigator.bluetooth.requestDevice({
-          filters: [{ services: [serviceUUID] }],
-          optionalServices: [
-            "0000180f-0000-1000-8000-00805f9b34fb", // Battery Service
-            "00001800-0000-1000-8000-00805f9b34fb", // Generic Access
-            "00001801-0000-1000-8000-00805f9b34fb", // Generic Attribute
-          ],
-        });
-        await this.connectToDevice(device);
-      } catch (error) {
-        console.warn("Custom service not found, trying with common services");
-
-        // Fallback to common services
-        try {
-          const device = await navigator.bluetooth.requestDevice({
-            filters: [
-              { services: ["0000180f-0000-1000-8000-00805f9b34fb"] }, // Battery Service
-              { services: ["00001800-0000-1000-8000-00805f9b34fb"] }, // Generic Access
-            ],
-            optionalServices: [
-              serviceUUID,
-              "0000180f-0000-1000-8000-00805f9b34fb",
-              "00001800-0000-1000-8000-00805f9b34fb",
-              "00001801-0000-1000-8000-00805f9b34fb",
-            ],
-          });
-          await this.connectToDevice(device);
-        } catch (fallbackError) {
-          console.warn("Fallback connection failed, trying accept all devices");
-
-          // Final fallback - accept all devices
-          const device = await navigator.bluetooth.requestDevice({
-            acceptAllDevices: true,
-            optionalServices: [
-              serviceUUID,
-              "0000180f-0000-1000-8000-00805f9b34fb",
-              "00001800-0000-1000-8000-00805f9b34fb",
-              "00001801-0000-1000-8000-00805f9b34fb",
-            ],
-          });
-          await this.connectToDevice(device);
-        }
-      }
+      // Emit scanning started event - actual device connection happens separately
+      this.emit("scanning-started");
+      console.log(
+        "Bluetooth scanning started. Use connectToNewDevice() to connect to devices.",
+      );
     } catch (error) {
       console.error("Bluetooth scanning error:", error);
       this.stopScanning();
@@ -335,6 +292,63 @@ export class BluetoothService extends EventEmitter {
     if (this.scanInterval) {
       clearInterval(this.scanInterval);
       this.scanInterval = null;
+    }
+  }
+
+  /**
+   * Connect to a new Bluetooth device
+   */
+  async connectToNewDevice(): Promise<void> {
+    if (!this.isInitialized) {
+      throw new Error("Bluetooth service not initialized");
+    }
+
+    const serviceUUID = this.uuidService.getServiceUUID();
+
+    try {
+      // Try with custom service first
+      const device = await navigator.bluetooth.requestDevice({
+        filters: [{ services: [serviceUUID] }],
+        optionalServices: [
+          "0000180f-0000-1000-8000-00805f9b34fb", // Battery Service
+          "00001800-0000-1000-8000-00805f9b34fb", // Generic Access
+          "00001801-0000-1000-8000-00805f9b34fb", // Generic Attribute
+        ],
+      });
+      await this.connectToDevice(device);
+    } catch (error) {
+      console.warn("Custom service not found, trying with common services");
+
+      // Fallback to common services
+      try {
+        const device = await navigator.bluetooth.requestDevice({
+          filters: [
+            { services: ["0000180f-0000-1000-8000-00805f9b34fb"] }, // Battery Service
+            { services: ["00001800-0000-1000-8000-00805f9b34fb"] }, // Generic Access
+          ],
+          optionalServices: [
+            serviceUUID,
+            "0000180f-0000-1000-8000-00805f9b34fb",
+            "00001800-0000-1000-8000-00805f9b34fb",
+            "00001801-0000-1000-8000-00805f9b34fb",
+          ],
+        });
+        await this.connectToDevice(device);
+      } catch (fallbackError) {
+        console.warn("Fallback connection failed, trying accept all devices");
+
+        // Final fallback - accept all devices
+        const device = await navigator.bluetooth.requestDevice({
+          acceptAllDevices: true,
+          optionalServices: [
+            serviceUUID,
+            "0000180f-0000-1000-8000-00805f9b34fb",
+            "00001800-0000-1000-8000-00805f9b34fb",
+            "00001801-0000-1000-8000-00805f9b34fb",
+          ],
+        });
+        await this.connectToDevice(device);
+      }
     }
   }
 
