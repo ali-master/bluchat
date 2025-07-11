@@ -30,10 +30,17 @@ self.addEventListener("install", (event) => {
     Promise.all([
       // Pre-cache essential files
       caches.open(CONFIG.CACHE_NAME).then((cache) => {
-        return cache.addAll(["/", "/index.html", "/src/main.tsx"]);
+        return cache.addAll(["/"]).catch((error) => {
+          console.warn("[Mesh Worker] Cache initialization failed:", error);
+          // Continue without caching
+          return Promise.resolve();
+        });
       }),
       // Initialize IndexedDB for mesh data
-      initializeMeshDatabase(),
+      initializeMeshDatabase().catch((error) => {
+        console.warn("[Mesh Worker] DB initialization failed:", error);
+        return Promise.resolve();
+      }),
     ]),
   );
 
@@ -98,24 +105,32 @@ self.addEventListener("fetch", (event) => {
  * Handle messages from clients
  */
 self.addEventListener("message", (event) => {
-  const { type, message } = event.data;
+  try {
+    const { type, message } = event.data;
 
-  switch (type) {
-    case "mesh-coordination":
-      handleMeshCoordination(message, event.source);
-      break;
-    case "start-background-scan":
-      startBackgroundScanning();
-      break;
-    case "stop-background-scan":
-      stopBackgroundScanning();
-      break;
-    case "get-mesh-state":
-      event.ports[0].postMessage({
-        type: "mesh-state",
-        state: serializeMeshState(),
-      });
-      break;
+    switch (type) {
+      case "mesh-coordination":
+        handleMeshCoordination(message, event.source);
+        break;
+      case "start-background-scan":
+        startBackgroundScanning();
+        break;
+      case "stop-background-scan":
+        stopBackgroundScanning();
+        break;
+      case "get-mesh-state":
+        if (event.ports && event.ports[0]) {
+          event.ports[0].postMessage({
+            type: "mesh-state",
+            state: serializeMeshState(),
+          });
+        }
+        break;
+      default:
+        console.warn("[Mesh Worker] Unknown message type:", type);
+    }
+  } catch (error) {
+    console.error("[Mesh Worker] Message handling error:", error);
   }
 });
 
