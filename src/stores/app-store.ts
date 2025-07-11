@@ -30,6 +30,7 @@ interface AppState {
   channelService: ChannelService;
   privacyService: PrivacyService;
   publicKey: string | null;
+  servicesInitialized: boolean;
 
   // Actions
   setScanning: (isScanning: boolean) => void;
@@ -95,6 +96,7 @@ interface AppState {
   // Getters
   getMessagesForChannel: (channel: string) => Message[];
   getPeerCount: () => number;
+  setServicesInitialized: (initialized: boolean) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -109,7 +111,8 @@ export const useAppStore = create<AppState>()(
         processedMessageIds: new Set(),
         currentChannel: "public",
         channels: [{ name: "public", password: null, createdAt: Date.now() }],
-        isSidebarOpen: true,
+        isSidebarOpen:
+          typeof window !== "undefined" && window.innerWidth >= 768,
         theme: "dark",
         searchQuery: "",
         searchResults: [],
@@ -117,6 +120,7 @@ export const useAppStore = create<AppState>()(
         channelService: new ChannelService(),
         privacyService: new PrivacyService(),
         publicKey: null,
+        servicesInitialized: false,
 
         // Connection actions
         setScanning: (isScanning) =>
@@ -402,6 +406,9 @@ export const useAppStore = create<AppState>()(
         },
 
         getPeerCount: () => get().peers.size,
+
+        setServicesInitialized: (initialized) =>
+          set({ servicesInitialized: initialized }),
       }),
       {
         name: "bluchat-store",

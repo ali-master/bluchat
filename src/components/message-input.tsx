@@ -7,18 +7,30 @@ import { toast } from "sonner";
 
 export function MessageInput() {
   const [text, setText] = useState("");
-  const { currentChannel, channels, addMessage, updateMessageStatus } =
-    useAppStore();
+  const {
+    currentChannel,
+    channels,
+    addMessage,
+    updateMessageStatus,
+    servicesInitialized,
+  } = useAppStore();
 
   const handleSend = async () => {
     if (!text.trim()) return;
+
+    if (!servicesInitialized) {
+      toast.error(
+        "Services are still initializing. Please wait and try again.",
+      );
+      return;
+    }
 
     const bluetoothService = (window as any).bluetoothService;
     const storageService = (window as any).storageService;
     const cryptoService = (window as any).cryptoService;
 
-    if (!cryptoService) {
-      toast.error("Services not initialized");
+    if (!cryptoService || !storageService) {
+      toast.error("Services not available");
       return;
     }
 
@@ -29,12 +41,21 @@ export function MessageInput() {
       // Find current channel
       const channel = channels.find((ch) => ch.name === currentChannel);
 
+      let publicKey;
+      try {
+        publicKey = cryptoService.getPublicKey();
+      } catch (error) {
+        console.error("Failed to get public key:", error);
+        toast.error("Failed to get public key. Please refresh the page.");
+        return;
+      }
+
       const messageData: any = {
         id: messageId,
         text: text.trim(),
         timestamp,
         channel: currentChannel,
-        sender: cryptoService.getPublicKey(),
+        sender: publicKey,
         ttl: 7,
         isMine: true,
         status: "sending",
@@ -86,7 +107,7 @@ export function MessageInput() {
   };
 
   return (
-    <div className="border-t p-4">
+    <div className="border-t p-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex gap-2">
         <Input
           placeholder="Type a message..."

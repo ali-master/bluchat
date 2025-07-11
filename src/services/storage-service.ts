@@ -72,6 +72,10 @@ export class StorageService {
     });
   }
 
+  isInitialized(): boolean {
+    return this.db !== null;
+  }
+
   async init() {
     try {
       console.log("Initializing storage service...");

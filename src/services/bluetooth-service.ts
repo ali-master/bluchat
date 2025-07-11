@@ -81,22 +81,13 @@ export class BluetoothService extends EventEmitter {
         return;
       }
 
-      // Request a basic device to check permissions
-      const serviceUUID = this.uuidService.getServiceUUID();
-      await navigator.bluetooth.requestDevice({
-        filters: [{ services: [serviceUUID] }],
-        optionalServices: [
-          "0000180f-0000-1000-8000-00805f9b34fb", // Battery Service
-          "00001800-0000-1000-8000-00805f9b34fb", // Generic Access
-          "00001801-0000-1000-8000-00805f9b34fb", // Generic Attribute
-        ],
-      });
-
-      console.log("Bluetooth permissions granted");
-      this.emit("bluetooth-permissions-granted");
+      console.log(
+        "Bluetooth permissions will be requested when scanning starts",
+      );
+      this.emit("bluetooth-ready");
     } catch (error) {
-      console.warn("Bluetooth permissions not granted:", error);
-      this.emit("bluetooth-permissions-denied", error);
+      console.warn("Bluetooth not available:", error);
+      this.emit("bluetooth-unavailable", error);
     }
   }
 
@@ -176,14 +167,53 @@ export class BluetoothService extends EventEmitter {
   }
 
   /**
+   * Wait for service to be initialized
+   */
+  async waitForInitialization(timeout: number = 10000): Promise<void> {
+    if (this.isInitialized) return;
+
+    return new Promise((resolve, reject) => {
+      const checkInterval = setInterval(() => {
+        if (this.isInitialized) {
+          clearInterval(checkInterval);
+          clearTimeout(timeoutId);
+          resolve();
+        }
+      }, 100);
+
+      const timeoutId = setTimeout(() => {
+        clearInterval(checkInterval);
+        reject(new Error("Bluetooth service initialization timeout"));
+      }, timeout);
+
+      // Also listen for initialization event
+      const initListener = () => {
+        clearInterval(checkInterval);
+        clearTimeout(timeoutId);
+        this.off("service-initialized", initListener);
+        resolve();
+      };
+      this.on("service-initialized", initListener);
+    });
+  }
+
+  /**
    * Start Bluetooth scanning for nearby devices
    */
   async startScanning() {
     if (this.isScanning) return;
 
-    // Ensure service is initialized
+    // Check if service is initialized
     if (!this.isInitialized) {
-      throw new Error("Bluetooth service not initialized");
+      console.log("Waiting for Bluetooth service to initialize...");
+      try {
+        await this.waitForInitialization();
+      } catch (error) {
+        console.error("Bluetooth service not ready:", error);
+        throw new Error(
+          "Bluetooth service not ready. Please wait and try again.",
+        );
+      }
     }
 
     try {
@@ -201,22 +231,54 @@ export class BluetoothService extends EventEmitter {
         }
       }, scanMode.interval);
 
-      // Initial device connection request using generated UUID
+      // Request device selection from user
       const serviceUUID = this.uuidService.getServiceUUID();
 
-      // Use more flexible filters for cross-platform compatibility
-      const device = await navigator.bluetooth.requestDevice({
-        acceptAllDevices: true,
-        optionalServices: [
-          serviceUUID,
-          // Add common UUIDs for better compatibility
-          "0000180f-0000-1000-8000-00805f9b34fb", // Battery Service
-          "00001800-0000-1000-8000-00805f9b34fb", // Generic Access
-          "00001801-0000-1000-8000-00805f9b34fb", // Generic Attribute
-        ],
-      });
+      try {
+        // Try with custom service first
+        const device = await navigator.bluetooth.requestDevice({
+          filters: [{ services: [serviceUUID] }],
+          optionalServices: [
+            "0000180f-0000-1000-8000-00805f9b34fb", // Battery Service
+            "00001800-0000-1000-8000-00805f9b34fb", // Generic Access
+            "00001801-0000-1000-8000-00805f9b34fb", // Generic Attribute
+          ],
+        });
+        await this.connectToDevice(device);
+      } catch (error) {
+        console.warn("Custom service not found, trying with common services");
 
-      await this.connectToDevice(device);
+        // Fallback to common services
+        try {
+          const device = await navigator.bluetooth.requestDevice({
+            filters: [
+              { services: ["0000180f-0000-1000-8000-00805f9b34fb"] }, // Battery Service
+              { services: ["00001800-0000-1000-8000-00805f9b34fb"] }, // Generic Access
+            ],
+            optionalServices: [
+              serviceUUID,
+              "0000180f-0000-1000-8000-00805f9b34fb",
+              "00001800-0000-1000-8000-00805f9b34fb",
+              "00001801-0000-1000-8000-00805f9b34fb",
+            ],
+          });
+          await this.connectToDevice(device);
+        } catch (fallbackError) {
+          console.warn("Fallback connection failed, trying accept all devices");
+
+          // Final fallback - accept all devices
+          const device = await navigator.bluetooth.requestDevice({
+            acceptAllDevices: true,
+            optionalServices: [
+              serviceUUID,
+              "0000180f-0000-1000-8000-00805f9b34fb",
+              "00001800-0000-1000-8000-00805f9b34fb",
+              "00001801-0000-1000-8000-00805f9b34fb",
+            ],
+          });
+          await this.connectToDevice(device);
+        }
+      }
     } catch (error) {
       console.error("Bluetooth scanning error:", error);
       this.stopScanning();
@@ -528,13 +590,26 @@ export class BluetoothService extends EventEmitter {
         return;
       }
 
+      // Mark as processed immediately to prevent loops
+      this.processedMessages.add(message.id);
+
+      // Clean up old message IDs after 5 minutes
+      setTimeout(() => {
+        this.processedMessages.delete(message.id);
+      }, 300000);
+
       // Update mesh routing information
       this.updateMeshRoute(fromDeviceId, message.sender);
 
       this.emit("message-received", message);
 
-      // Auto-relay message if TTL > 1
-      if (message.ttl && message.ttl > 1) {
+      // Only relay if this is not our own message and TTL > 1
+      if (
+        message.sender !== this.generateNodeId() &&
+        message.ttl &&
+        message.ttl > 1 &&
+        this.connections.size > 1
+      ) {
         setTimeout(() => {
           this.relayMessage(message, fromDeviceId);
         }, Math.random() * 1000); // Random delay to prevent collision

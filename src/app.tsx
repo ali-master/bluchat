@@ -23,7 +23,8 @@ if (typeof window !== "undefined") {
 }
 
 export function App() {
-  const { addMessage, addPeer, removePeer, theme } = useAppStore();
+  const { addMessage, addPeer, removePeer, theme, setServicesInitialized } =
+    useAppStore();
   const { confirm, ConfirmDialog } = useConfirm();
 
   useEffect(() => {
@@ -35,22 +36,41 @@ export function App() {
     // Initialize confirm service
     confirmService.setConfirmFunction(confirm);
 
-    // Initialize services
+    // Initialize all services
     const initServices = async () => {
-      await storageService.init();
-      await cryptoService.init();
+      try {
+        console.log("Initializing all services...");
 
-      // Load stored messages
-      const channels = useAppStore.getState().channels;
-      for (const channel of channels) {
-        const messages = await storageService.getMessages(channel.name);
-        messages.forEach((msg) => {
-          addMessage({
-            ...msg,
-            isMine: msg.sender === cryptoService.getPublicKey(),
-            status: "stored",
+        // Initialize storage service first
+        await storageService.init();
+        console.log("✓ Storage service initialized");
+
+        // Initialize crypto service
+        await cryptoService.init();
+        console.log("✓ Crypto service initialized");
+
+        // Bluetooth service initializes itself automatically
+        console.log("✓ Bluetooth service initializing...");
+
+        // Load stored messages
+        const channels = useAppStore.getState().channels;
+        for (const channel of channels) {
+          const messages = await storageService.getMessages(channel.name);
+          messages.forEach((msg) => {
+            addMessage({
+              ...msg,
+              isMine: msg.sender === cryptoService.getPublicKey(),
+              status: "stored",
+            });
           });
-        });
+        }
+
+        console.log("✓ All services initialized successfully");
+        setServicesInitialized(true);
+      } catch (error) {
+        console.error("Failed to initialize services:", error);
+        setServicesInitialized(false);
+        // You might want to show a toast or error message to the user
       }
     };
 

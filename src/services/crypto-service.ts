@@ -58,6 +58,10 @@ export class CryptoService {
     }
   }
 
+  isInitialized(): boolean {
+    return this.signKeyPair !== null && this.boxKeyPair !== null;
+  }
+
   getPublicKey(): string {
     if (!this.signKeyPair) throw new Error("Crypto service not initialized");
     return this.encodeBase64(this.signKeyPair.publicKey);
