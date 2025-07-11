@@ -5,6 +5,10 @@ import { ScanningOptimizer } from "./scanning-optimizer";
 import { MeshCoordinator } from "./mesh-coordinator";
 import { UUIDService } from "./uuid-service";
 
+export type { MeshNode } from "./mesh-coordinator";
+export type { ScanMode, ScanStats } from "./scanning-optimizer";
+export type { UUIDConfig } from "./uuid-service";
+
 interface BluetoothConnection {
   device: BluetoothDevice;
   server: BluetoothRemoteGATTServer;

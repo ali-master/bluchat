@@ -5,7 +5,7 @@ import type { BatteryManager } from "@/types/service-worker";
 /**
  * Scanning mode configuration
  */
-interface ScanMode {
+export interface ScanMode {
   /** Interval between scans in milliseconds */
   interval: number;
   /** Duration of each scan in milliseconds */
@@ -19,7 +19,7 @@ interface ScanMode {
 /**
  * Scan statistics for optimization
  */
-interface ScanStats {
+export interface ScanStats {
   /** Number of devices discovered */
   devicesFound: number;
   /** Number of successful connections */

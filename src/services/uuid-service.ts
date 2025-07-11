@@ -3,7 +3,7 @@ import { StorageService } from "./storage-service";
 /**
  * UUID configuration for Bluetooth services
  */
-interface UUIDConfig {
+export interface UUIDConfig {
   /** Main service UUID */
   serviceUUID: string;
   /** Primary characteristic UUID for data transfer */

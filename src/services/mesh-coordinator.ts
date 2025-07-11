@@ -8,7 +8,7 @@ import type { Peer, Message } from "@/types";
 /**
  * Mesh node information
  */
-interface MeshNode {
+export interface MeshNode {
   /** Unique identifier for the node */
   id: string;
   /** Node capabilities */
