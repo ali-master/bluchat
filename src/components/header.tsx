@@ -36,6 +36,15 @@ export function Header() {
 
       if (error instanceof Error && error.message.includes("User cancelled")) {
         toast.info("Connection cancelled");
+      } else if (
+        error instanceof Error &&
+        error.message.includes("Unsupported device")
+      ) {
+        toast.error("Device not compatible", {
+          description:
+            "This device doesn't support the required Bluetooth services. Try connecting from the other device, or use manual WebRTC connection mode.",
+          duration: 8000,
+        });
       } else {
         toast.error(
           "Connection failed. Make sure Bluetooth is enabled on both devices.",
@@ -70,15 +79,18 @@ export function Header() {
             onClick={() => {
               toast("📱 How to Connect Devices", {
                 description:
-                  "BluChat now uses WebRTC for real peer-to-peer messaging:\n\n" +
-                  "1. Both devices must have Bluetooth enabled\n" +
-                  "2. Use Chrome, Edge, or Opera (Safari doesn't support Web Bluetooth)\n" +
-                  "3. One device clicks 'Start Advertising' (in sidebar)\n" +
-                  "4. Other device clicks 'Scan' and selects the device\n" +
-                  "5. Bluetooth establishes initial connection\n" +
-                  "6. WebRTC automatically creates secure data channel\n" +
-                  "7. Messages are sent via WebRTC for better performance",
-                duration: 12000,
+                  "BluChat supports multiple connection methods:\n\n" +
+                  "🔵 Bluetooth + WebRTC (Recommended):\n" +
+                  "1. Both devices have Bluetooth enabled\n" +
+                  "2. One device clicks 'Start Advertising'\n" +
+                  "3. Other device clicks 'Scan' and selects device\n" +
+                  "4. WebRTC connection established automatically\n\n" +
+                  "🟡 WebRTC-only (if Bluetooth fails):\n" +
+                  "1. Check browser console for connection details\n" +
+                  "2. Manually share Peer ID and Offer/Answer\n" +
+                  "3. Direct peer-to-peer connection without Bluetooth\n\n" +
+                  "📱 Use Chrome, Edge, or Opera browser",
+                duration: 15000,
               });
             }}
             className="flex items-center gap-2"

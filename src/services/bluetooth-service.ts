@@ -183,6 +183,53 @@ export class BluetoothService extends EventEmitter {
   }
 
   /**
+   * Join a WebRTC-only connection using connection details
+   */
+  async joinWebRTCConnection(peerId: string, offer: string): Promise<void> {
+    try {
+      const answer = await this.webrtcService.joinDirectConnection(
+        peerId,
+        offer,
+      );
+
+      console.log("📱 WebRTC connection answer generated");
+      console.log("Send this answer back to the other device:");
+      console.log("Answer:", answer);
+
+      // Add peer to our local list
+      const peer: Peer = {
+        id: peerId,
+        name: "WebRTC Peer",
+        rssi: -50,
+        lastSeen: Date.now(),
+      };
+
+      this.devices.set(peerId, peer);
+      this.emit("peer-connected", peer);
+      this.emit("webrtc-answer-generated", { peerId, answer });
+    } catch (error) {
+      console.error("Failed to join WebRTC connection:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Complete WebRTC connection with answer from other device
+   */
+  async completeWebRTCConnection(
+    peerId: string,
+    answer: string,
+  ): Promise<void> {
+    try {
+      await this.webrtcService.completeDirectConnection(peerId, answer);
+      console.log("✅ WebRTC connection completed successfully");
+    } catch (error) {
+      console.error("Failed to complete WebRTC connection:", error);
+      throw error;
+    }
+  }
+
+  /**
    * Send WebRTC signaling data via Bluetooth
    */
   private async sendWebRTCSignal(type: string, data: any): Promise<void> {
@@ -438,9 +485,65 @@ export class BluetoothService extends EventEmitter {
         }
 
         if (!connected) {
-          throw new Error(
-            `❌ No compatible Bluetooth services found on "${device.name || device.id}". This device is not running BluChat or doesn't support the required Bluetooth services.`,
+          // Try to establish a basic connection anyway for WebRTC signaling
+          console.warn(
+            `⚠️ No standard services found on ${device.name || device.id}, attempting basic connection for WebRTC...`,
           );
+
+          // Use a minimal approach - just establish GATT connection
+          try {
+            // Create a mock service/characteristic for WebRTC signaling
+            const mockConnection: BluetoothConnection = {
+              device,
+              server,
+              service: null as any,
+              characteristic: null as any,
+              rssi: -60,
+            };
+
+            this.connections.set(device.id, mockConnection);
+
+            const peer: Peer = {
+              id: device.id,
+              name: device.name || "Unknown Device",
+              rssi: -60,
+              lastSeen: Date.now(),
+            };
+
+            this.devices.set(device.id, peer);
+
+            console.log(
+              `✅ Basic connection established with ${device.name || device.id} for WebRTC`,
+            );
+
+            // Since Bluetooth services aren't available, use WebRTC-only mode
+            // Generate connection details that the user can share manually
+            const connectionDetails =
+              await this.webrtcService.createDirectConnection();
+
+            console.log("🔗 WebRTC-only connection mode activated");
+            console.log("Share this connection info with the other device:");
+            console.log("Peer ID:", connectionDetails.peerId);
+
+            // Store the connection for WebRTC
+            this.connections.set(connectionDetails.peerId, mockConnection);
+            this.devices.set(connectionDetails.peerId, {
+              ...peer,
+              id: connectionDetails.peerId,
+            });
+
+            this.emit("peer-connected", peer);
+            this.emit("webrtc-connection-details", {
+              deviceName: device.name || device.id,
+              peerId: connectionDetails.peerId,
+              offer: connectionDetails.offer,
+            });
+            return;
+          } catch {
+            throw new Error(
+              `❌ Unable to connect to "${device.name || device.id}". This device may not support Web Bluetooth or is not compatible with BluChat. Try connecting from the other device instead.`,
+            );
+          }
         }
       }
 
@@ -648,6 +751,14 @@ export class BluetoothService extends EventEmitter {
     connection: BluetoothConnection,
     data: Uint8Array,
   ) {
+    // If no characteristic available, skip Bluetooth sending (WebRTC will handle it)
+    if (!connection.characteristic) {
+      console.log(
+        `Skipping Bluetooth send to ${connection.device.name} - using WebRTC only`,
+      );
+      return;
+    }
+
     // Send data as single packet (fragmentation is handled at protocol level)
     await connection.characteristic.writeValue(data);
   }

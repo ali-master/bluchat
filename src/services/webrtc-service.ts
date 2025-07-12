@@ -40,6 +40,44 @@ export class WebRTCService extends EventEmitter {
   }
 
   /**
+   * Create a direct connection without Bluetooth signaling
+   * This will generate connection details that can be shared manually
+   */
+  async createDirectConnection(): Promise<{ peerId: string; offer: string }> {
+    const peerId = this.generatePeerId();
+    const offer = await this.createOffer(peerId);
+
+    console.log("📱 Direct connection offer created:");
+    console.log("Peer ID:", peerId);
+    console.log("Offer:", offer);
+
+    return { peerId, offer };
+  }
+
+  /**
+   * Join a direct connection using offer details
+   */
+  async joinDirectConnection(peerId: string, offer: string): Promise<string> {
+    const answer = await this.handleOffer(peerId, offer);
+
+    console.log("📱 Direct connection answer created:");
+    console.log("Answer:", answer);
+
+    return answer;
+  }
+
+  /**
+   * Complete direct connection with answer
+   */
+  async completeDirectConnection(
+    peerId: string,
+    answer: string,
+  ): Promise<void> {
+    await this.handleAnswer(peerId, answer);
+    console.log("✅ Direct connection completed");
+  }
+
+  /**
    * Create a connection offer to another peer
    */
   async createOffer(peerId: string): Promise<string> {

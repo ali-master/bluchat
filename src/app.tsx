@@ -97,6 +97,30 @@ export function App() {
     // Start advertising automatically
     bluetoothService.startAdvertising().catch(console.error);
 
+    // Listen for WebRTC connection events
+    bluetoothService.on("webrtc-connection-details", (data) => {
+      console.log("📱 WebRTC Connection Details:");
+      console.log("Device:", data.deviceName);
+      console.log("Peer ID:", data.peerId);
+      console.log("Offer:", data.offer);
+
+      // Show user-friendly instructions
+      console.log("🔗 To connect manually:");
+      console.log("1. Copy the Peer ID and Offer from browser console");
+      console.log("2. Share with the other device");
+      console.log("3. Use manual WebRTC connection mode");
+    });
+
+    bluetoothService.on("webrtc-answer-generated", (data) => {
+      console.log("📱 WebRTC Answer Generated:");
+      console.log("Peer ID:", data.peerId);
+      console.log("Answer:", data.answer);
+
+      console.log(
+        "🔗 Share this answer with the connecting device to complete the connection.",
+      );
+    });
+
     bluetoothService.on("message-received", async (message) => {
       // Handle incoming message
       const { markMessageAsProcessed, processedMessageIds } =
@@ -141,6 +165,7 @@ export function App() {
     return () => {
       bluetoothService.removeAllListeners();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array - initialization should only happen once
 
   return (
