@@ -44,7 +44,7 @@ export function MessageList() {
   if (channelMessages.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center text-muted-foreground">
-        <div className="text-center">
+        <div className="text-center pt-4">
           <p>No messages yet</p>
           <p className="text-sm">Start a conversation!</p>
         </div>
