@@ -4,6 +4,7 @@ import type { Peer, Message } from "@/types";
 import { ScanningOptimizer } from "./scanning-optimizer";
 import { MeshCoordinator } from "./mesh-coordinator";
 import { UUIDService } from "./uuid-service";
+import { WebRTCService } from "./webrtc-service";
 
 export type { MeshNode } from "./mesh-coordinator";
 export type { ScanMode, ScanStats } from "./scanning-optimizer";
@@ -34,6 +35,7 @@ export class BluetoothService extends EventEmitter {
   private scanningOptimizer: ScanningOptimizer;
   private meshCoordinator: MeshCoordinator;
   private uuidService: UUIDService;
+  private webrtcService: WebRTCService;
   private isInitialized = false;
 
   constructor() {
@@ -41,6 +43,7 @@ export class BluetoothService extends EventEmitter {
     this.scanningOptimizer = new ScanningOptimizer();
     this.meshCoordinator = new MeshCoordinator();
     this.uuidService = UUIDService.getInstance();
+    this.webrtcService = new WebRTCService();
     this.initializeService();
   }
 
@@ -55,6 +58,7 @@ export class BluetoothService extends EventEmitter {
       await this.requestBluetoothPermissions();
 
       this.initializeOptimizations();
+      this.initializeWebRTC();
       this.isInitialized = true;
       this.emit("service-initialized", {
         config: this.uuidService.getConfig(),
@@ -149,6 +153,59 @@ export class BluetoothService extends EventEmitter {
   }
 
   /**
+   * Initialize WebRTC service and event handlers
+   */
+  private initializeWebRTC(): void {
+    // Handle WebRTC connection events
+    this.webrtcService.on("peer-connected", (peer) => {
+      console.log("✅ WebRTC peer connected:", peer);
+      this.emit("peer-connected", peer);
+    });
+
+    this.webrtcService.on("peer-disconnected", (peerId) => {
+      console.log("❌ WebRTC peer disconnected:", peerId);
+      this.emit("peer-disconnected", peerId);
+    });
+
+    this.webrtcService.on("message-received", (message) => {
+      console.log("📥 WebRTC message received:", message);
+      this.emit("message-received", message);
+    });
+
+    this.webrtcService.on("ice-candidate", (data) => {
+      console.log("🧊 WebRTC ICE candidate:", data);
+      // Send ICE candidate via Bluetooth
+      this.sendWebRTCSignal("ice-candidate", data);
+    });
+
+    // Start WebRTC listening
+    this.webrtcService.startListening();
+  }
+
+  /**
+   * Send WebRTC signaling data via Bluetooth
+   */
+  private async sendWebRTCSignal(type: string, data: any): Promise<void> {
+    const signalMessage = {
+      type: "WEBRTC_SIGNAL",
+      signalType: type,
+      data,
+      timestamp: Date.now(),
+    };
+
+    const encoded = new TextEncoder().encode(JSON.stringify(signalMessage));
+
+    for (const [deviceId, connection] of this.connections) {
+      try {
+        await this.sendToDevice(connection, encoded);
+        console.log(`📤 WebRTC signal sent to ${deviceId}:`, type);
+      } catch (error) {
+        console.error(`Failed to send WebRTC signal to ${deviceId}:`, error);
+      }
+    }
+  }
+
+  /**
    * Apply optimized scan mode
    * @param mode - Scan mode to apply
    */
@@ -173,18 +230,20 @@ export class BluetoothService extends EventEmitter {
     if (this.isInitialized) return;
 
     return new Promise((resolve, reject) => {
-      const checkInterval = setInterval(() => {
+      let checkInterval: NodeJS.Timeout;
+
+      const timeoutId = setTimeout(() => {
+        if (checkInterval) clearInterval(checkInterval);
+        reject(new Error("Bluetooth service initialization timeout"));
+      }, timeout);
+
+      checkInterval = setInterval(() => {
         if (this.isInitialized) {
           clearInterval(checkInterval);
           clearTimeout(timeoutId);
           resolve();
         }
       }, 100);
-
-      const timeoutId = setTimeout(() => {
-        clearInterval(checkInterval);
-        reject(new Error("Bluetooth service initialization timeout"));
-      }, timeout);
 
       // Also listen for initialization event
       const initListener = () => {
@@ -333,24 +392,30 @@ export class BluetoothService extends EventEmitter {
       let service: BluetoothRemoteGATTService | undefined;
       let characteristic: BluetoothRemoteGATTCharacteristic | undefined;
 
+      console.log(
+        `🔗 Attempting to connect to device: ${device.name || device.id}`,
+      );
+
       try {
-        // Try custom service first
+        // Try custom BluChat service first
         service = await server.getPrimaryService(serviceUUID);
         characteristic = await service.getCharacteristic(characteristicUUID);
-        console.log("Connected using custom UUID service");
-      } catch (error) {
-        console.warn("Custom service not found, trying fallback...");
+        console.log("✅ Connected using custom BluChat service");
+      } catch {
+        console.warn(
+          "⚠️ Custom BluChat service not found, trying standard services...",
+        );
 
-        // Try common services as fallback for cross-platform compatibility
+        // Try standard Bluetooth services that might work for communication
         const fallbackServices = [
           {
-            service: "0000180f-0000-1000-8000-00805f9b34fb",
-            char: "00002a19-0000-1000-8000-00805f9b34fb",
-          }, // Battery
+            service: "0000180f-0000-1000-8000-00805f9b34fb", // Battery Service
+            char: "00002a19-0000-1000-8000-00805f9b34fb", // Battery Level
+          },
           {
-            service: "0000180a-0000-1000-8000-00805f9b34fb",
-            char: "00002a29-0000-1000-8000-00805f9b34fb",
-          }, // Device Info
+            service: "0000180a-0000-1000-8000-00805f9b34fb", // Device Information
+            char: "00002a29-0000-1000-8000-00805f9b34fb", // Manufacturer Name
+          },
         ];
 
         let connected = false;
@@ -359,22 +424,28 @@ export class BluetoothService extends EventEmitter {
             service = await server.getPrimaryService(fallback.service);
             characteristic = await service.getCharacteristic(fallback.char);
             console.log(
-              `Connected using fallback service: ${fallback.service}`,
+              `✅ Connected using standard service: ${fallback.service}`,
             );
             connected = true;
             break;
           } catch (e) {
+            console.warn(
+              `❌ Failed to connect to ${fallback.service}:`,
+              e instanceof Error ? e.message : String(e),
+            );
             continue;
           }
         }
 
         if (!connected) {
-          throw new Error("No compatible service found");
+          throw new Error(
+            `❌ No compatible Bluetooth services found on "${device.name || device.id}". This device is not running BluChat or doesn't support the required Bluetooth services.`,
+          );
         }
       }
 
       if (!service || !characteristic) {
-        throw new Error("No compatible service or characteristic found");
+        throw new Error("❌ Failed to establish Bluetooth service connection");
       }
 
       const connection: BluetoothConnection = {
@@ -399,6 +470,7 @@ export class BluetoothService extends EventEmitter {
       // Initialize mesh routing table for this peer
       this.meshRoutes.set(device.id, new Set());
 
+      // Set up real Bluetooth communication
       characteristic.addEventListener(
         "characteristicvaluechanged",
         (event: any) => {
@@ -407,6 +479,7 @@ export class BluetoothService extends EventEmitter {
       );
 
       await characteristic.startNotifications();
+      console.log("🔔 Bluetooth notifications enabled for real communication");
 
       device.addEventListener("gattserverdisconnected", () => {
         this.handleDisconnection(device.id);
@@ -424,6 +497,9 @@ export class BluetoothService extends EventEmitter {
       // Update scanning optimizer connection count
       this.scanningOptimizer.setActiveConnectionCount(this.connections.size);
       this.scanningOptimizer.recordConnectionSuccess(device.id);
+
+      // Initiate WebRTC connection after Bluetooth is established
+      this.initiateWebRTCConnection(device.id);
 
       this.emit("peer-connected", peer);
     } catch (error) {
@@ -471,7 +547,32 @@ export class BluetoothService extends EventEmitter {
   }
 
   async broadcastMessage(message: Message) {
+    // Try WebRTC first for better reliability and speed
+    const webrtcPeers = this.webrtcService.getConnectedPeers();
+
+    if (webrtcPeers.length > 0) {
+      try {
+        await this.webrtcService.broadcastMessage(message);
+        console.log(
+          `✅ Message sent via WebRTC to ${webrtcPeers.length} peers`,
+        );
+        return;
+      } catch (error) {
+        console.warn(
+          "WebRTC broadcast failed, falling back to Bluetooth:",
+          error,
+        );
+      }
+    }
+
+    // Fallback to Bluetooth if WebRTC is not available
+    if (this.connections.size === 0) {
+      console.warn("📵 No connected devices to send message to");
+      throw new Error("No connected devices available for messaging");
+    }
+
     const packets = MessageProtocol.encode(message);
+    let successCount = 0;
 
     for (const [deviceId, connection] of this.connections) {
       try {
@@ -483,10 +584,22 @@ export class BluetoothService extends EventEmitter {
             await new Promise((resolve) => setTimeout(resolve, 50));
           }
         }
+        successCount++;
+        console.log(
+          `📤 Message successfully sent to ${connection.device.name || deviceId}`,
+        );
       } catch (error) {
-        console.error(`Failed to send to ${deviceId}:`, error);
+        console.error(`❌ Failed to send message to ${deviceId}:`, error);
       }
     }
+
+    if (successCount === 0) {
+      throw new Error("Failed to send message to any connected device");
+    }
+
+    console.log(
+      `✅ Message broadcast completed: ${successCount}/${this.connections.size} devices`,
+    );
   }
 
   async relayMessage(message: Message, excludeDeviceId?: string) {
@@ -554,6 +667,9 @@ export class BluetoothService extends EventEmitter {
         } else if (jsonMessage.type === "MESH_ANNOUNCE") {
           console.log("Received mesh announcement:", jsonMessage);
           return;
+        } else if (jsonMessage.type === "WEBRTC_SIGNAL") {
+          this.handleWebRTCSignal(jsonMessage, fromDeviceId);
+          return;
         }
       } catch {
         // Not a JSON message, continue with normal protocol decoding
@@ -606,6 +722,70 @@ export class BluetoothService extends EventEmitter {
       this.meshRoutes.set(directPeer, new Set());
     }
     this.meshRoutes.get(directPeer)!.add(originalSender);
+  }
+
+  /**
+   * Handle WebRTC signaling messages received via Bluetooth
+   */
+  private async handleWebRTCSignal(
+    signal: any,
+    fromDeviceId: string,
+  ): Promise<void> {
+    try {
+      console.log(
+        `📥 WebRTC signal received from ${fromDeviceId}:`,
+        signal.signalType,
+      );
+
+      switch (signal.signalType) {
+        case "offer": {
+          const answer = await this.webrtcService.handleOffer(
+            fromDeviceId,
+            signal.data,
+          );
+          await this.sendWebRTCSignal("answer", answer);
+          break;
+        }
+
+        case "answer":
+          await this.webrtcService.handleAnswer(fromDeviceId, signal.data);
+          break;
+
+        case "ice-candidate":
+          await this.webrtcService.handleIceCandidate(
+            fromDeviceId,
+            signal.data,
+          );
+          break;
+
+        default:
+          console.warn("Unknown WebRTC signal type:", signal.signalType);
+      }
+    } catch (error) {
+      console.error("Failed to handle WebRTC signal:", error);
+    }
+  }
+
+  /**
+   * Initiate WebRTC connection using Bluetooth for signaling
+   */
+  private async initiateWebRTCConnection(deviceId: string): Promise<void> {
+    try {
+      console.log(`🚀 Initiating WebRTC connection with ${deviceId}`);
+
+      // Create WebRTC offer
+      const offer = await this.webrtcService.createOffer(deviceId);
+
+      // Send offer via Bluetooth
+      await this.sendWebRTCSignal("offer", offer);
+
+      console.log(`📤 WebRTC offer sent to ${deviceId}`);
+    } catch (error) {
+      console.error(
+        `Failed to initiate WebRTC connection with ${deviceId}:`,
+        error,
+      );
+    }
   }
 
   async startAdvertising() {
@@ -760,7 +940,32 @@ export class BluetoothService extends EventEmitter {
   }
 
   getConnectedPeers(): Peer[] {
-    return Array.from(this.devices.values());
+    const bluetoothPeers = Array.from(this.devices.values());
+    const webrtcPeers = this.webrtcService.getConnectedPeers();
+
+    // Combine peers, prioritizing WebRTC connections
+    const allPeers = new Map<string, Peer>();
+
+    // Add Bluetooth peers first
+    bluetoothPeers.forEach((peer) => allPeers.set(peer.id, peer));
+
+    // Add or update with WebRTC peers
+    webrtcPeers.forEach((peer) => {
+      const existing = allPeers.get(peer.id);
+      if (existing) {
+        // Update existing peer with WebRTC status
+        allPeers.set(peer.id, {
+          ...existing,
+          ...peer,
+          name: existing.name, // Keep original name from Bluetooth
+        });
+      } else {
+        // Add new WebRTC-only peer
+        allPeers.set(peer.id, peer);
+      }
+    });
+
+    return Array.from(allPeers.values());
   }
 
   /**

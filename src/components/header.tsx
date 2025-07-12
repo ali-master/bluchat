@@ -70,13 +70,15 @@ export function Header() {
             onClick={() => {
               toast("📱 How to Connect Devices", {
                 description:
-                  "For Web Bluetooth to work:\n\n" +
-                  "• Both devices must have Bluetooth enabled\n" +
-                  "• Use Chrome, Edge, or Opera (Safari doesn't support Web Bluetooth)\n" +
-                  "• One device clicks 'Start Advertising' (in sidebar)\n" +
-                  "• Other device clicks 'Scan' and selects the device\n" +
-                  "• Accept the pairing request on both devices",
-                duration: 10000,
+                  "BluChat now uses WebRTC for real peer-to-peer messaging:\n\n" +
+                  "1. Both devices must have Bluetooth enabled\n" +
+                  "2. Use Chrome, Edge, or Opera (Safari doesn't support Web Bluetooth)\n" +
+                  "3. One device clicks 'Start Advertising' (in sidebar)\n" +
+                  "4. Other device clicks 'Scan' and selects the device\n" +
+                  "5. Bluetooth establishes initial connection\n" +
+                  "6. WebRTC automatically creates secure data channel\n" +
+                  "7. Messages are sent via WebRTC for better performance",
+                duration: 12000,
               });
             }}
             className="flex items-center gap-2"
