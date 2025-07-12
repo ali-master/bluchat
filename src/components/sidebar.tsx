@@ -5,6 +5,7 @@ import { PeerList } from "./peer-list";
 import { NetworkStatus } from "./network-status";
 import { OptimizationStatus } from "./optimization-status";
 import { UUIDDisplay } from "./uuid-display";
+import { ManualConnection } from "./manual-connection";
 import { ScrollArea } from "./ui/scroll-area";
 import { useEffect } from "react";
 
@@ -71,6 +72,7 @@ export function Sidebar() {
               <NetworkStatus />
               <OptimizationStatus />
               <UUIDDisplay />
+              <ManualConnection />
               <ChannelList />
               <PeerList />
             </div>
