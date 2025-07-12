@@ -100,7 +100,9 @@ export class MeshCoordinator extends EventEmitter {
       this.initializeBroadcastChannel();
 
       // Skip service worker registration for now due to fetch interference
-      console.log("Service worker registration disabled to prevent fetch conflicts");
+      console.log(
+        "Service worker registration disabled to prevent fetch conflicts",
+      );
 
       // Start coordination processes
       this.startHeartbeat();

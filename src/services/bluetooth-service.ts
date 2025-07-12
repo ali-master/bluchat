@@ -305,51 +305,18 @@ export class BluetoothService extends EventEmitter {
 
     const serviceUUID = this.uuidService.getServiceUUID();
 
-    try {
-      // Try with custom service first
-      const device = await navigator.bluetooth.requestDevice({
-        filters: [{ services: [serviceUUID] }],
-        optionalServices: [
-          "0000180f-0000-1000-8000-00805f9b34fb", // Battery Service
-          "00001800-0000-1000-8000-00805f9b34fb", // Generic Access
-          "00001801-0000-1000-8000-00805f9b34fb", // Generic Attribute
-        ],
-      });
-      await this.connectToDevice(device);
-    } catch (error) {
-      console.warn("Custom service not found, trying with common services");
-
-      // Fallback to common services
-      try {
-        const device = await navigator.bluetooth.requestDevice({
-          filters: [
-            { services: ["0000180f-0000-1000-8000-00805f9b34fb"] }, // Battery Service
-            { services: ["00001800-0000-1000-8000-00805f9b34fb"] }, // Generic Access
-          ],
-          optionalServices: [
-            serviceUUID,
-            "0000180f-0000-1000-8000-00805f9b34fb",
-            "00001800-0000-1000-8000-00805f9b34fb",
-            "00001801-0000-1000-8000-00805f9b34fb",
-          ],
-        });
-        await this.connectToDevice(device);
-      } catch (fallbackError) {
-        console.warn("Fallback connection failed, trying accept all devices");
-
-        // Final fallback - accept all devices
-        const device = await navigator.bluetooth.requestDevice({
-          acceptAllDevices: true,
-          optionalServices: [
-            serviceUUID,
-            "0000180f-0000-1000-8000-00805f9b34fb",
-            "00001800-0000-1000-8000-00805f9b34fb",
-            "00001801-0000-1000-8000-00805f9b34fb",
-          ],
-        });
-        await this.connectToDevice(device);
-      }
-    }
+    // Show all available Bluetooth devices without filtering
+    const device = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: [
+        serviceUUID,
+        "0000180f-0000-1000-8000-00805f9b34fb", // Battery Service
+        "00001800-0000-1000-8000-00805f9b34fb", // Generic Access
+        "00001801-0000-1000-8000-00805f9b34fb", // Generic Attribute
+        "0000180a-0000-1000-8000-00805f9b34fb", // Device Information
+      ],
+    });
+    await this.connectToDevice(device);
   }
 
   /**
